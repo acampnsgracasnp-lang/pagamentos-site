@@ -196,6 +196,14 @@
           <div class="field-error">Informe o nome completo.</div>
         </div>
 
+        ${i === 0 ? `
+        <div class="form-group">
+          <label>E-mail <span class="required">*</span></label>
+          <input type="email" name="email" required placeholder="seu@email.com" value="${escapeAttr(old.email)}">
+          <div class="field-error">Informe um e-mail válido.</div>
+        </div>
+        ` : ""}
+
         <div class="form-row">
           <div class="form-group">
             <label>Telefone com DDD <span class="required">*</span></label>
@@ -291,6 +299,7 @@
       if (desejaRadio) desejaCamiseta = desejaRadio.value === "sim";
       return {
         nome: get("nome"),
+        email: get("email"),
         telefone: get("telefone"),
         comunidade: get("comunidade"),
         pastoral: get("pastoral"),
@@ -344,6 +353,18 @@
         telEl.nextElementSibling?.classList.add("show");
         valid = false;
         if (!firstInvalid) firstInvalid = telEl;
+      }
+
+      if (idx === 0) {
+        const emailEl = b.querySelector('[name="email"]');
+        const emailVal = (p.email || "").trim();
+        const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal);
+        if (emailEl && !emailOk) {
+          emailEl.classList.add("invalid");
+          emailEl.nextElementSibling?.classList.add("show");
+          valid = false;
+          if (!firstInvalid) firstInvalid = emailEl;
+        }
       }
 
       if (exigeCamiseta) {
@@ -444,6 +465,7 @@
           descricao: `${state.quantity} inscrição(ões)`,
           payer: {
             name: participantes[0]?.nome || "",
+            email: participantes[0]?.email || "",
             phone: participantes[0]?.telefone || ""
           }
         })
