@@ -44,10 +44,24 @@ module.exports = async function handler(req, res) {
     return;
   }
 
-  const ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN;
+  const ACCESS_TOKEN = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").trim();
   if (!ACCESS_TOKEN) {
+    // Diagnóstico: lista NOMES (sem valores) de envs relacionadas para identificar
+    // typos, espaços ou ambiente errado na Vercel.
+    const mpVarNames = Object.keys(process.env)
+      .filter((k) => /MERCADO|MP_|PAGO|ACCESS_TOKEN/i.test(k))
+      .sort();
+    console.error("[criar-preferencia] MERCADO_PAGO_ACCESS_TOKEN ausente.", {
+      mpVarNames,
+      vercelEnv: process.env.VERCEL_ENV,
+      region: process.env.VERCEL_REGION
+    });
     res.status(500).json({
-      error: "MERCADO_PAGO_ACCESS_TOKEN não configurado nas variáveis de ambiente da Vercel."
+      error: "MERCADO_PAGO_ACCESS_TOKEN não configurado nas variáveis de ambiente da Vercel.",
+      diag: {
+        mpVarNames,
+        vercelEnv: process.env.VERCEL_ENV || null
+      }
     });
     return;
   }
@@ -133,10 +147,16 @@ module.exports = async function handler(req, res) {
     },
     auto_return: "approved",
     statement_descriptor: "EVENTO",
+    // Métodos de pagamento — Checkout Pro com guest checkout ("Sem conta Mercado Pago").
+    // PIX corresponde ao type "bank_transfer" e NÃO pode ser excluído.
+    // Cartão de crédito = "credit_card"; cartão de débito = "debit_card".
+    // Excluímos apenas boleto ("ticket") e caixa eletrônico ("atm").
     payment_methods: {
-      // Checkout Pro: PIX + crédito + débito.
-      // Bloqueia boleto/caixa (sem confirmação automática útil aqui).
-      excluded_payment_types: [{ id: "atm" }, { id: "ticket" }],
+      excluded_payment_methods: [],
+      excluded_payment_types: [
+        { id: "atm" },
+        { id: "ticket" }
+      ],
       installments: 12
     }
   };
