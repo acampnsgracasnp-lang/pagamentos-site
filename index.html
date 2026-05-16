@@ -5,27 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
   <meta name="description" content="Inscrição online para eventos — pagamento via PIX ou cartão.">
   <title>Inscrição — Evento</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 
-  <!-- Firebase compat SDKs (no build step required) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
 </head>
 <body>
+
+  <!-- TOPBAR -->
+  <header class="public-topbar">
+    <div class="public-topbar-inner">
+      <div class="brand">
+        <span class="brand-mark">P</span>
+        <span>Inscrições</span>
+      </div>
+      <span class="badge-trust" title="Pagamento processado pelo Mercado Pago">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <span>Pagamento seguro</span>
+      </span>
+    </div>
+  </header>
+
   <div class="container">
 
-    <!-- LOADING inicial -->
+    <!-- LOADING -->
     <div id="loading-state" class="card">
       <div class="loading">
         <div class="spinner"></div>
-        <p>Carregando evento...</p>
+        <p>Carregando evento…</p>
       </div>
     </div>
 
-    <!-- Mensagem de erro / evento não encontrado / encerrado -->
+    <!-- ERRO -->
     <div id="error-state" class="card hidden">
       <div class="alert alert-danger" id="error-message"></div>
-      <p class="text-center text-muted mt-2">
+      <p class="text-center text-muted mt-2 text-sm">
         Verifique o link do evento ou entre em contato com o organizador.
       </p>
     </div>
@@ -33,16 +50,20 @@
     <!-- PÁGINA DO EVENTO -->
     <div id="event-state" class="hidden">
 
-      <!-- BANNER -->
-      <div class="event-banner" id="event-banner">
+      <!-- HERO -->
+      <div class="event-hero" id="event-banner">
         <img id="event-banner-img" alt="" style="display:none">
-        <div class="event-banner-content">
+        <div class="event-hero-content">
+          <span class="eyebrow">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+            Inscrições abertas
+          </span>
           <h1 id="event-name">Nome do Evento</h1>
           <div class="event-subtitle" id="event-subtitle"></div>
         </div>
       </div>
 
-      <!-- INFO RÁPIDA -->
+      <!-- INFO -->
       <div class="event-info">
         <div class="info-item">
           <div class="info-label">Data</div>
@@ -53,7 +74,7 @@
           <div class="info-value" id="event-location">—</div>
         </div>
         <div class="info-item highlight">
-          <div class="info-label">Valor</div>
+          <div class="info-label">Valor por pessoa</div>
           <div class="info-value" id="event-price">R$ —</div>
         </div>
         <div class="info-item">
@@ -64,51 +85,64 @@
 
       <!-- DESCRIÇÃO -->
       <div class="card" id="event-description-card">
-        <h2 style="font-size:17px;margin-bottom:10px">Sobre o evento</h2>
-        <p id="event-description" style="color:var(--text-muted)"></p>
+        <h2>Sobre o evento</h2>
+        <p class="text-muted mt-1" id="event-description" style="white-space:pre-line"></p>
       </div>
 
-      <!-- AVISO DE ESGOTADO/INATIVO -->
+      <!-- BLOQUEIO -->
       <div id="event-blocked" class="alert alert-warning hidden"></div>
 
       <!-- FORMULÁRIO -->
       <form id="registration-form" class="card">
-        <h2 style="font-size:18px;margin-bottom:6px">Faça sua inscrição</h2>
-        <p class="text-muted mb-3" style="font-size:14px">
-          Preencha os dados de cada participante. Tudo é necessário para emitir a inscrição.
-        </p>
+        <h2>Faça sua inscrição</h2>
+        <p class="card-sub">Preencha os dados de cada participante. Tudo é necessário para emitir a inscrição.</p>
 
         <!-- QUANTIDADE -->
-        <div class="form-group">
-          <label>Quantidade de inscrições <span class="required">*</span></label>
-          <div class="quantity-control">
-            <button type="button" class="quantity-btn" id="qty-minus" aria-label="Diminuir">−</button>
-            <span class="quantity-value" id="qty-value">1</span>
-            <button type="button" class="quantity-btn" id="qty-plus" aria-label="Aumentar">+</button>
+        <div class="card-section">
+          <div class="card-section-title">Quantidade</div>
+          <div class="form-group" style="margin-bottom:6px">
+            <label>Quantas inscrições você quer fazer? <span class="required">*</span></label>
+            <div class="quantity-control">
+              <button type="button" class="quantity-btn" id="qty-minus" aria-label="Diminuir">−</button>
+              <span class="quantity-value" id="qty-value">1</span>
+              <button type="button" class="quantity-btn" id="qty-plus" aria-label="Aumentar">+</button>
+            </div>
+            <div class="field-hint" id="qty-hint"></div>
           </div>
-          <div class="field-hint" id="qty-hint"></div>
         </div>
 
-        <!-- PARTICIPANTES (gerados dinamicamente) -->
-        <div id="participants-container"></div>
+        <!-- PARTICIPANTES -->
+        <div class="card-section">
+          <div class="card-section-title">Dados dos participantes</div>
+          <div id="participants-container"></div>
+        </div>
 
         <!-- TOTAL -->
         <div class="total-display">
           <div>
             <div class="total-label">Total a pagar</div>
-            <div style="font-size:13px;color:var(--text-muted);font-weight:500" id="total-breakdown">—</div>
+            <div class="text-sm text-muted" id="total-breakdown" style="font-weight:500;margin-top:4px">—</div>
           </div>
           <div class="total-value" id="total-value">R$ 0,00</div>
         </div>
 
         <!-- BOTÃO -->
-        <button type="submit" class="btn btn-primary btn-block" id="btn-submit">
+        <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-submit">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
           <span id="btn-submit-text">Continuar para pagamento</span>
         </button>
 
-        <p class="text-center text-muted mt-2" style="font-size:12px">
-          Pagamento processado pelo Mercado Pago • PIX, cartão de crédito ou débito
-        </p>
+        <!-- TRUST -->
+        <div style="display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin-top:14px;font-size:12.5px;color:var(--text-muted)">
+          <span style="display:inline-flex;align-items:center;gap:5px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>Conexão segura</span>
+          </span>
+          <span style="opacity:.4">•</span>
+          <span>Processado pelo Mercado Pago</span>
+          <span style="opacity:.4">•</span>
+          <span>PIX e cartão</span>
+        </div>
       </form>
     </div>
   </div>

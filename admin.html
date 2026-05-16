@@ -4,6 +4,9 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel Administrativo — Eventos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/style.css">
 
   <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
@@ -14,62 +17,149 @@
   <!-- TELA DE LOGIN -->
   <div id="login-screen" class="login-wrapper">
     <div class="login-box">
-      <h1>Painel Admin</h1>
-      <p class="login-sub">Acesso restrito ao organizador</p>
+      <div class="brand" style="justify-content:center">
+        <span class="brand-mark">P</span>
+        <span>Painel Admin</span>
+      </div>
+      <h1>Acesso restrito</h1>
+      <p class="login-sub">Entre com a senha do organizador para gerenciar eventos e inscrições.</p>
       <form id="login-form">
         <div class="form-group">
-          <label>Senha de acesso</label>
-          <input type="password" id="login-password" required autocomplete="current-password">
+          <label for="login-password">Senha de acesso</label>
+          <input type="password" id="login-password" required autocomplete="current-password" placeholder="••••••••">
         </div>
-        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
-        <p class="text-muted mt-2 text-center" style="font-size:12px">
-          Para produção, ative o Firebase Authentication (veja README).
+        <button type="submit" class="btn btn-primary btn-block btn-lg">Entrar no painel</button>
+        <p class="text-muted text-xs text-center mt-2">
+          Em produção, ative o Firebase Authentication (veja o README).
         </p>
       </form>
     </div>
   </div>
 
-  <!-- PAINEL ADMIN -->
-  <div id="admin-screen" class="hidden">
-    <div class="container-wide">
-      <header class="admin-header">
-        <h1>Painel Administrativo</h1>
-        <div style="display:flex;gap:10px">
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-new-event">+ Novo evento</button>
-          <button type="button" class="btn btn-secondary btn-sm" id="btn-logout">Sair</button>
-        </div>
-      </header>
+  <!-- PAINEL -->
+  <div id="admin-screen" class="hidden admin-shell">
 
-      <div class="tabs">
-        <button type="button" class="tab active" data-tab="events">Eventos</button>
-        <button type="button" class="tab" data-tab="registrations">Inscritos</button>
+    <!-- TOPBAR -->
+    <header class="admin-topbar">
+      <div class="admin-topbar-inner">
+        <div class="brand">
+          <span class="brand-mark">P</span>
+          <div>
+            <h1>Painel Administrativo</h1>
+            <div class="sub">Gestão de eventos, inscrições e pagamentos</div>
+          </div>
+        </div>
+        <div class="admin-topbar-actions">
+          <button type="button" class="btn btn-primary" id="btn-new-event">
+            <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Novo evento</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btn-logout">
+            <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>
+            <span>Sair</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <main class="container-wide" style="padding-top:26px">
+
+      <!-- CARDS DE RESUMO -->
+      <section class="stats-grid" id="admin-stats">
+        <div class="stat-card accent-brand">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          </div>
+          <div class="stat-label">Total de eventos</div>
+          <div class="stat-value" id="admin-stat-events-total">—</div>
+          <div class="stat-hint" id="admin-stat-events-hint">Carregando…</div>
+        </div>
+
+        <div class="stat-card accent-success">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+          </div>
+          <div class="stat-label">Eventos ativos</div>
+          <div class="stat-value" id="admin-stat-events-ativos">—</div>
+          <div class="stat-hint">Aceitando inscrições agora</div>
+        </div>
+
+        <div class="stat-card accent-violet">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <div class="stat-label">Total de inscritos</div>
+          <div class="stat-value" id="admin-stat-inscritos">—</div>
+          <div class="stat-hint" id="admin-stat-inscritos-hint">Aguardando dados</div>
+        </div>
+
+        <div class="stat-card accent-warning">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="stat-label">Receita confirmada</div>
+          <div class="stat-value" id="admin-stat-receita">R$ —</div>
+          <div class="stat-hint">Somente pagamentos aprovados</div>
+        </div>
+
+        <div class="stat-card accent-info">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div class="stat-label">Vagas disponíveis</div>
+          <div class="stat-value" id="admin-stat-vagas">—</div>
+          <div class="stat-hint">Considerando todos os eventos</div>
+        </div>
+      </section>
+
+      <!-- TABS -->
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-tab="events" role="tab" aria-selected="true">
+          <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+          <span>Eventos</span>
+          <span class="tab-count" id="tab-count-events">0</span>
+        </button>
+        <button type="button" class="tab" data-tab="registrations" role="tab" aria-selected="false">
+          <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+          <span>Inscritos</span>
+        </button>
       </div>
 
-      <!-- ABA: EVENTOS -->
-      <div id="tab-events" class="tab-content active">
+      <!-- ABA EVENTOS -->
+      <div id="tab-events" class="tab-content active" role="tabpanel">
         <div id="events-loading" class="loading">
           <div class="spinner"></div>
-          <p>Carregando eventos...</p>
+          <p>Carregando eventos…</p>
         </div>
-        <div id="events-empty" class="card hidden text-center">
-          <p class="text-muted">Nenhum evento criado ainda.</p>
-          <button class="btn btn-primary mt-2" onclick="document.getElementById('btn-new-event').click()">+ Criar primeiro evento</button>
+
+        <div id="events-empty" class="empty-state hidden">
+          <div class="empty-icon">
+            <svg class="icon-md" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18M12 14v4M10 16h4"/></svg>
+          </div>
+          <h3>Você ainda não criou nenhum evento</h3>
+          <p>Crie seu primeiro evento para gerar um link público de inscrições e começar a receber pagamentos via PIX e cartão.</p>
+          <button class="btn btn-primary btn-lg" type="button" onclick="document.getElementById('btn-new-event').click()">
+            <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Criar primeiro evento</span>
+          </button>
         </div>
+
         <div id="events-list" class="event-list"></div>
       </div>
 
-      <!-- ABA: INSCRITOS -->
-      <div id="tab-registrations" class="tab-content">
-        <div class="card card-compact">
-          <div class="form-row">
+      <!-- ABA INSCRITOS -->
+      <div id="tab-registrations" class="tab-content" role="tabpanel">
+
+        <div class="filter-bar">
+          <div class="filter-row">
             <div class="form-group">
-              <label>Filtrar por evento</label>
+              <label for="filter-event">Evento</label>
               <select id="filter-event">
                 <option value="">Todos os eventos</option>
               </select>
             </div>
             <div class="form-group">
-              <label>Filtrar por status</label>
+              <label for="filter-status">Status do pagamento</label>
               <select id="filter-status">
                 <option value="">Todos</option>
                 <option value="pago">Pago</option>
@@ -78,138 +168,168 @@
                 <option value="cancelado">Cancelado</option>
               </select>
             </div>
-          </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap">
-            <button type="button" class="btn btn-primary btn-sm" id="btn-load-regs">Buscar</button>
-            <button type="button" class="btn btn-success btn-sm" id="btn-export-csv">Exportar CSV</button>
+            <button type="button" class="btn btn-primary" id="btn-load-regs">
+              <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span>Buscar</span>
+            </button>
+            <button type="button" class="btn btn-success" id="btn-export-csv">
+              <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+              <span>Exportar CSV</span>
+            </button>
           </div>
         </div>
 
         <div id="regs-loading" class="loading hidden">
           <div class="spinner"></div>
-          <p>Carregando inscritos...</p>
+          <p>Carregando inscritos…</p>
         </div>
 
-        <div id="regs-stats" class="event-info hidden">
-          <div class="info-item">
-            <div class="info-label">Total</div>
-            <div class="info-value" id="stat-total">0</div>
+        <div id="regs-stats" class="stats-grid hidden" style="margin-bottom:18px">
+          <div class="stat-card accent-brand">
+            <div class="stat-label">Total</div>
+            <div class="stat-value" id="stat-total">0</div>
+            <div class="stat-hint">Inscrições no filtro atual</div>
           </div>
-          <div class="info-item">
-            <div class="info-label">Pagos</div>
-            <div class="info-value" id="stat-pagos">0</div>
+          <div class="stat-card accent-success">
+            <div class="stat-label">Pagos</div>
+            <div class="stat-value" id="stat-pagos">0</div>
           </div>
-          <div class="info-item">
-            <div class="info-label">Pendentes</div>
-            <div class="info-value" id="stat-pendentes">0</div>
+          <div class="stat-card accent-warning">
+            <div class="stat-label">Pendentes</div>
+            <div class="stat-value" id="stat-pendentes">0</div>
           </div>
-          <div class="info-item highlight">
-            <div class="info-label">Arrecadado</div>
-            <div class="info-value" id="stat-arrecadado">R$ 0</div>
+          <div class="stat-card accent-violet">
+            <div class="stat-label">Arrecadado</div>
+            <div class="stat-value" id="stat-arrecadado">R$ 0</div>
+            <div class="stat-hint">Somatório pagos</div>
           </div>
         </div>
 
         <div class="table-wrap" id="regs-table-wrap" style="display:none">
-          <table>
-            <thead>
-              <tr>
-                <th>Data</th>
-                <th>Evento</th>
-                <th>Responsável</th>
-                <th>Tel.</th>
-                <th>Qtd</th>
-                <th>Valor</th>
-                <th>Status</th>
-                <th>Ações</th>
-              </tr>
-            </thead>
-            <tbody id="regs-tbody"></tbody>
-          </table>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Evento</th>
+                  <th>Responsável</th>
+                  <th>Tel.</th>
+                  <th>Qtd</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="regs-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
-    </div>
+
+    </main>
   </div>
 
   <!-- MODAL: criar/editar evento -->
-  <div class="modal-overlay" id="event-modal">
+  <div class="modal-overlay" id="event-modal" role="dialog" aria-modal="true" aria-labelledby="event-modal-title">
     <div class="modal">
       <div class="modal-header">
-        <h2 id="event-modal-title">Novo evento</h2>
-        <button type="button" class="modal-close" data-close="event-modal">&times;</button>
+        <div>
+          <h2 id="event-modal-title">Novo evento</h2>
+          <div class="modal-sub">Preencha as informações abaixo. Campos com <span style="color:var(--danger)">*</span> são obrigatórios.</div>
+        </div>
+        <button type="button" class="modal-close" data-close="event-modal" aria-label="Fechar">&times;</button>
       </div>
       <form id="event-form">
         <div class="modal-body">
           <input type="hidden" id="event-id">
 
-          <div class="form-group">
-            <label>Nome do evento <span class="required">*</span></label>
-            <input type="text" id="ev-nome" required>
-          </div>
-
-          <div class="form-row">
+          <!-- INFO -->
+          <div class="card-section">
+            <div class="card-section-title">Informações do evento</div>
             <div class="form-group">
-              <label>Slug (URL) <span class="required">*</span></label>
-              <input type="text" id="ev-slug" required placeholder="mulheres, retiro, acampamento">
-              <div class="field-hint">Será usado em: index.html?evento=<b id="slug-preview">slug</b></div>
+              <label for="ev-nome">Nome do evento <span class="required">*</span></label>
+              <input type="text" id="ev-nome" required placeholder="Ex.: Acampamento Jovem 2026">
             </div>
             <div class="form-group">
-              <label>Ativo</label>
+              <label for="ev-slug">Slug (link público) <span class="required">*</span></label>
+              <input type="text" id="ev-slug" required placeholder="acampamento">
+              <div class="field-hint">Será usado em: <code>index.html?evento=<b id="slug-preview">slug</b></code></div>
+            </div>
+            <div class="form-group">
+              <label for="ev-descricao">Descrição</label>
+              <textarea id="ev-descricao" placeholder="Descreva o evento, programação, observações importantes…"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="ev-banner">URL do banner (imagem)</label>
+              <input type="url" id="ev-banner" placeholder="https://… (opcional)">
+              <div class="field-hint">A imagem é exibida no topo da página pública.</div>
+            </div>
+          </div>
+
+          <!-- PREÇO / VAGAS -->
+          <div class="card-section">
+            <div class="card-section-title">Preço e vagas</div>
+            <div class="form-row-3">
+              <div class="form-group">
+                <label for="ev-valor">Valor (R$) <span class="required">*</span></label>
+                <input type="number" id="ev-valor" min="0" step="0.01" required placeholder="120.00">
+              </div>
+              <div class="form-group">
+                <label for="ev-limite">Limite de ingressos <span class="required">*</span></label>
+                <input type="number" id="ev-limite" min="1" step="1" required placeholder="100">
+              </div>
+              <div class="form-group">
+                <label for="ev-vendidos">Ingressos vendidos</label>
+                <input type="number" id="ev-vendidos" min="0" step="1" value="0">
+                <div class="field-hint">Atualizado pelo webhook.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- DATA / LOCAL -->
+          <div class="card-section">
+            <div class="card-section-title">Data e local</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="ev-data">Data do evento</label>
+                <input type="date" id="ev-data">
+              </div>
+              <div class="form-group">
+                <label for="ev-local">Local</label>
+                <input type="text" id="ev-local" placeholder="Cidade, paróquia, salão…">
+              </div>
+            </div>
+          </div>
+
+          <!-- CAMISETA -->
+          <div class="card-section">
+            <div class="card-section-title">Camiseta</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="ev-exige-camiseta">Pedir tamanho de camiseta?</label>
+                <select id="ev-exige-camiseta">
+                  <option value="true">Sim — perguntar para cada participante</option>
+                  <option value="false">Não</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="ev-tamanhos">Tamanhos disponíveis</label>
+                <input type="text" id="ev-tamanhos" value="PP, P, M, G, GG, XG">
+                <div class="field-hint">Separe por vírgula.</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- STATUS -->
+          <div class="card-section">
+            <div class="card-section-title">Status</div>
+            <div class="form-group">
+              <label for="ev-ativo">Inscrições</label>
               <select id="ev-ativo">
-                <option value="true">Sim — aceitar inscrições</option>
-                <option value="false">Não — pausar</option>
+                <option value="true">Ativo — aceitar novas inscrições</option>
+                <option value="false">Pausado — não aceitar</option>
               </select>
             </div>
-          </div>
-
-          <div class="form-group">
-            <label>Descrição</label>
-            <textarea id="ev-descricao" placeholder="Descreva o evento..."></textarea>
-          </div>
-
-          <div class="form-row-3">
-            <div class="form-group">
-              <label>Valor (R$) <span class="required">*</span></label>
-              <input type="number" id="ev-valor" min="0" step="0.01" required>
-            </div>
-            <div class="form-group">
-              <label>Limite ingressos <span class="required">*</span></label>
-              <input type="number" id="ev-limite" min="1" step="1" required>
-            </div>
-            <div class="form-group">
-              <label>Ingressos vendidos</label>
-              <input type="number" id="ev-vendidos" min="0" step="1" value="0">
-              <div class="field-hint">Atualizado automaticamente pelo webhook.</div>
-            </div>
-          </div>
-
-          <div class="form-row">
-            <div class="form-group">
-              <label>Data do evento</label>
-              <input type="date" id="ev-data">
-            </div>
-            <div class="form-group">
-              <label>Local</label>
-              <input type="text" id="ev-local">
-            </div>
-          </div>
-
-          <div class="form-group">
-            <label>URL do banner (imagem)</label>
-            <input type="url" id="ev-banner" placeholder="https://...">
-          </div>
-
-          <div class="form-group">
-            <label>Exige camiseta?</label>
-            <select id="ev-exige-camiseta">
-              <option value="true">Sim — perguntar tamanho</option>
-              <option value="false">Não</option>
-            </select>
-          </div>
-
-          <div class="form-group">
-            <label>Tamanhos disponíveis</label>
-            <input type="text" id="ev-tamanhos" value="PP, P, M, G, GG, XG">
-            <div class="field-hint">Separe por vírgula.</div>
           </div>
         </div>
         <div class="modal-footer">
@@ -220,12 +340,12 @@
     </div>
   </div>
 
-  <!-- MODAL: detalhes da inscrição -->
-  <div class="modal-overlay" id="reg-modal">
+  <!-- MODAL: detalhes inscrição -->
+  <div class="modal-overlay" id="reg-modal" role="dialog" aria-modal="true">
     <div class="modal">
       <div class="modal-header">
         <h2>Detalhes da inscrição</h2>
-        <button type="button" class="modal-close" data-close="reg-modal">&times;</button>
+        <button type="button" class="modal-close" data-close="reg-modal" aria-label="Fechar">&times;</button>
       </div>
       <div class="modal-body" id="reg-modal-body"></div>
       <div class="modal-footer">

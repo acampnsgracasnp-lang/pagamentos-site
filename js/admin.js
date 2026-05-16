@@ -3,10 +3,9 @@
    ------------------------------------------------------------
    Funcionalidades:
    - Login simples (senha local — trocar por Firebase Auth)
-   - Listar / criar / editar / ativar-desativar eventos
-   - Listar inscritos com filtro por evento e status
-   - Exportar inscritos em CSV
-   - Ver detalhes de cada inscrição
+   - Cards de resumo (total/ativos/inscritos/receita/vagas)
+   - CRUD de eventos
+   - Lista de inscritos com filtros + estatísticas + CSV
    ============================================================ */
 
 (function () {
@@ -15,13 +14,8 @@
   /* ============================================================
      LOGIN SIMPLES (TROCAR EM PRODUÇÃO POR FIREBASE AUTH)
      ------------------------------------------------------------
-     IMPORTANTE:
-     Esta senha está NO FRONTEND e é apenas para testes.
-     QUEM ABRIR O CONSOLE / CÓDIGO-FONTE VERÁ A SENHA.
-
-     Para produção, use Firebase Authentication:
-       firebase.auth().signInWithEmailAndPassword(email, senha)
-     E proteja a coleção "admins" via Regras do Firestore.
+     IMPORTANTE: senha no frontend é apenas para testes.
+     Em produção: Firebase Authentication + regras no Firestore.
      ============================================================ */
   const ADMIN_PASSWORD = "admin123"; // <-- TROQUE ESTA SENHA
   const SESSION_KEY = "__admin_session_v1";
@@ -40,6 +34,13 @@
     const n = Number(v) || 0;
     return n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
+  function formatBRLCompact(v) {
+    const n = Number(v) || 0;
+    if (Math.abs(n) >= 1000) {
+      return "R$ " + (n / 1000).toLocaleString("pt-BR", { maximumFractionDigits: 1 }) + "k";
+    }
+    return formatBRL(n);
+  }
 
   function formatDate(dateStr) {
     if (!dateStr) return "—";
@@ -49,7 +50,6 @@
       return d.toLocaleDateString("pt-BR");
     } catch { return dateStr; }
   }
-
   function formatTimestamp(ts) {
     try {
       if (!ts) return "—";
@@ -84,16 +84,27 @@
       recusado: "badge-danger",
       cancelado: "badge-muted"
     };
-    return `<span class="badge ${map[status] || "badge-muted"}">${status || "—"}</span>`;
+    const label = { pago: "Pago", pendente: "Pendente", recusado: "Recusado", cancelado: "Cancelado" };
+    return `<span class="badge ${map[status] || "badge-muted"}">${label[status] || status || "—"}</span>`;
   }
+
+  // Mini-ícones SVG inline
+  const ICONS = {
+    calendar: '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>',
+    pin: '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+    tag: '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.59 13.41 13.41 20.59a2 2 0 0 1-2.82 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>',
+    link: '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>',
+    edit: '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>',
+    pause: '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>',
+    play: '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>',
+    users: '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>',
+    eye: '<svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>'
+  };
 
   // -------------------------- LOGIN ---------------------------
   function isLoggedIn() {
-    try {
-      return sessionStorage.getItem(SESSION_KEY) === "ok";
-    } catch { return false; }
+    try { return sessionStorage.getItem(SESSION_KEY) === "ok"; } catch { return false; }
   }
-
   function login(pw) {
     if (pw === ADMIN_PASSWORD) {
       try { sessionStorage.setItem(SESSION_KEY, "ok"); } catch {}
@@ -101,21 +112,16 @@
     }
     return false;
   }
-
   function logout() {
     try { sessionStorage.removeItem(SESSION_KEY); } catch {}
     location.reload();
   }
-
   function bindLogin() {
     $("#login-form").addEventListener("submit", (e) => {
       e.preventDefault();
       const pw = $("#login-password").value;
-      if (login(pw)) {
-        showAdmin();
-      } else {
-        alert("Senha incorreta.");
-      }
+      if (login(pw)) showAdmin();
+      else alert("Senha incorreta.");
     });
     $("#btn-logout").addEventListener("click", logout);
   }
@@ -123,19 +129,20 @@
   function showAdmin() {
     $("#login-screen").classList.add("hidden");
     $("#admin-screen").classList.remove("hidden");
-    loadEvents();
     bindTabs();
     bindEventModal();
     bindRegistrations();
+    loadEvents();
   }
 
   // -------------------------- TABS ----------------------------
   function bindTabs() {
     $$(".tab").forEach(t => {
       t.addEventListener("click", () => {
-        $$(".tab").forEach(x => x.classList.remove("active"));
+        $$(".tab").forEach(x => { x.classList.remove("active"); x.setAttribute("aria-selected","false"); });
         $$(".tab-content").forEach(x => x.classList.remove("active"));
         t.classList.add("active");
+        t.setAttribute("aria-selected", "true");
         const target = "tab-" + t.getAttribute("data-tab");
         document.getElementById(target).classList.add("active");
 
@@ -159,6 +166,7 @@
       currentEvents = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
       $("#events-loading").classList.add("hidden");
+      updateSummaryStats();
 
       if (!currentEvents.length) {
         $("#events-empty").classList.remove("hidden");
@@ -170,47 +178,64 @@
         const limite = Number(ev.limiteIngressos) || 0;
         const vendidos = Number(ev.ingressosVendidos) || 0;
         const restantes = Math.max(0, limite - vendidos);
+        const percent = limite > 0 ? Math.min(100, Math.round((vendidos / limite) * 100)) : 0;
+        const esgotado = limite > 0 && vendidos >= limite;
+
+        const statusBadge = !ev.ativo
+          ? '<span class="badge badge-muted">Pausado</span>'
+          : esgotado
+            ? '<span class="badge badge-danger">Esgotado</span>'
+            : '<span class="badge badge-success">Ativo</span>';
 
         const card = document.createElement("div");
         card.className = "event-card";
         card.innerHTML = `
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
-            <div>
-              <h3>${escapeHTML(ev.nome || "Sem nome")}</h3>
-              <div class="slug">/?evento=${escapeHTML(ev.slug || "")}</div>
+          <div class="ev-head">
+            <div style="min-width:0">
+              <div class="ev-title">${escapeHTML(ev.nome || "Sem nome")}</div>
+              <span class="slug">?evento=${escapeHTML(ev.slug || "")}</span>
             </div>
-            <span class="badge ${ev.ativo ? "badge-success" : "badge-muted"}">
-              ${ev.ativo ? "Ativo" : "Pausado"}
-            </span>
+            ${statusBadge}
           </div>
 
-          <div class="stats">
-            <div class="stat">
-              <div class="stat-label">Valor</div>
-              <div class="stat-value">${formatBRL(ev.valor)}</div>
+          <div class="meta-line">
+            <span>${ICONS.calendar}${ev.dataEvento ? escapeHTML(formatDate(ev.dataEvento)) : "Sem data"}</span>
+            <span>${ICONS.pin}${ev.local ? escapeHTML(ev.local) : "Local não definido"}</span>
+            <span>${ICONS.tag}${formatBRL(ev.valor)}</span>
+          </div>
+
+          <div>
+            <div class="progress" aria-label="Progresso de vendas">
+              <div class="progress-bar" style="width:${percent}%"></div>
             </div>
-            <div class="stat">
-              <div class="stat-label">Vendidos</div>
-              <div class="stat-value">${vendidos}/${limite}</div>
-            </div>
-            <div class="stat">
-              <div class="stat-label">Restam</div>
-              <div class="stat-value">${restantes}</div>
+            <div class="progress-meta">
+              <span>${vendidos} de ${limite || "—"} vendidos</span>
+              <span>${percent}%</span>
             </div>
           </div>
 
-          <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px">
-            ${ev.dataEvento ? `📅 ${formatDate(ev.dataEvento)}` : ""}
-            ${ev.local ? ` • 📍 ${escapeHTML(ev.local)}` : ""}
+          <div class="stats-row">
+            <div class="mini-stat">
+              <div class="ms-label">Valor</div>
+              <div class="ms-value">${formatBRLCompact(ev.valor)}</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-label">Vendidos</div>
+              <div class="ms-value">${vendidos}</div>
+            </div>
+            <div class="mini-stat">
+              <div class="ms-label">Restam</div>
+              <div class="ms-value">${restantes}</div>
+            </div>
           </div>
 
           <div class="card-actions">
-            <button class="btn btn-primary btn-sm" data-edit="${ev.id}">Editar</button>
+            <button class="btn btn-primary btn-sm" data-edit="${ev.id}">${ICONS.edit}<span>Editar</span></button>
             <button class="btn btn-secondary btn-sm" data-toggle="${ev.id}">
-              ${ev.ativo ? "Pausar" : "Ativar"}
+              ${ev.ativo ? ICONS.pause : ICONS.play}<span>${ev.ativo ? "Pausar" : "Ativar"}</span>
             </button>
-            <button class="btn btn-secondary btn-sm" data-link="${ev.slug || ""}">Link</button>
-            <button class="btn btn-secondary btn-sm" data-regs="${ev.id}">Inscritos</button>
+            <button class="btn btn-secondary btn-sm" data-link="${ev.slug || ""}">${ICONS.link}<span>Copiar link</span></button>
+            <button class="btn btn-ghost btn-sm" data-regs="${ev.id}">${ICONS.users}<span>Inscritos</span></button>
           </div>
         `;
         list.appendChild(card);
@@ -227,15 +252,17 @@
         b.addEventListener("click", () => {
           const slug = b.getAttribute("data-link");
           const url = `${location.origin}${location.pathname.replace("admin.html", "index.html")}?evento=${slug}`;
-          navigator.clipboard?.writeText(url);
+          try { navigator.clipboard?.writeText(url); } catch {}
           alert("Link copiado:\n" + url);
         });
       });
       list.querySelectorAll("[data-regs]").forEach(b => {
         b.addEventListener("click", () => {
-          $$(".tab").forEach(x => x.classList.remove("active"));
+          $$(".tab").forEach(x => { x.classList.remove("active"); x.setAttribute("aria-selected","false"); });
           $$(".tab-content").forEach(x => x.classList.remove("active"));
-          document.querySelector('[data-tab="registrations"]').classList.add("active");
+          const tabBtn = document.querySelector('[data-tab="registrations"]');
+          tabBtn.classList.add("active");
+          tabBtn.setAttribute("aria-selected","true");
           $("#tab-registrations").classList.add("active");
           populateEventFilter().then(() => {
             $("#filter-event").value = b.getAttribute("data-regs");
@@ -247,6 +274,68 @@
       console.error(err);
       $("#events-loading").classList.add("hidden");
       alert("Erro ao carregar eventos. Verifique as regras do Firestore.");
+    }
+  }
+
+  // ------------------- SUMMARY STATS --------------------------
+  function updateSummaryStats() {
+    const totalEventos = currentEvents.length;
+    const eventosAtivos = currentEvents.filter(e => e.ativo).length;
+
+    let totalLimite = 0;
+    let totalVendidos = 0;
+    currentEvents.forEach(e => {
+      totalLimite += Number(e.limiteIngressos) || 0;
+      totalVendidos += Number(e.ingressosVendidos) || 0;
+    });
+    const vagasDisponiveis = Math.max(0, totalLimite - totalVendidos);
+
+    $("#admin-stat-events-total").textContent = totalEventos;
+    $("#admin-stat-events-hint").textContent = totalEventos === 0
+      ? "Nenhum evento criado"
+      : `${eventosAtivos} ativo${eventosAtivos === 1 ? "" : "s"}`;
+    $("#admin-stat-events-ativos").textContent = eventosAtivos;
+    $("#admin-stat-vagas").textContent = vagasDisponiveis;
+
+    $("#tab-count-events").textContent = totalEventos;
+
+    // Inscritos + receita: precisamos consultar registrations
+    loadAggregateRegistrations().catch(err => console.warn(err));
+  }
+
+  async function loadAggregateRegistrations() {
+    // Para evitar chamadas pesadas, fazemos apenas se não foram ainda calculadas
+    // e quando há eventos.
+    if (!currentEvents.length) {
+      $("#admin-stat-inscritos").textContent = 0;
+      $("#admin-stat-inscritos-hint").textContent = "Sem eventos";
+      $("#admin-stat-receita").textContent = formatBRL(0);
+      return;
+    }
+
+    try {
+      // Limit defensivo — pega até 1000 registrations recentes
+      const snap = await db.collection("registrations").limit(1000).get();
+      let totalInscricoes = 0;
+      let totalParticipantes = 0;
+      let receita = 0;
+      snap.docs.forEach(d => {
+        const r = d.data();
+        totalInscricoes++;
+        totalParticipantes += Number(r.quantidade) || 1;
+        if (r.statusPagamento === "pago") {
+          receita += Number(r.valorTotal) || 0;
+        }
+      });
+      $("#admin-stat-inscritos").textContent = totalParticipantes;
+      $("#admin-stat-inscritos-hint").textContent =
+        `${totalInscricoes} inscrição${totalInscricoes === 1 ? "" : "s"} no total`;
+      $("#admin-stat-receita").textContent = formatBRL(receita);
+    } catch (err) {
+      console.warn("Falha ao agregar registrations:", err);
+      $("#admin-stat-inscritos").textContent = "—";
+      $("#admin-stat-inscritos-hint").textContent = "Sem permissão de leitura";
+      $("#admin-stat-receita").textContent = formatBRL(0);
     }
   }
 
@@ -269,7 +358,6 @@
     $("#btn-new-event").addEventListener("click", () => openEditModal(null));
 
     $("#ev-nome").addEventListener("input", (e) => {
-      // auto-sugere slug enquanto o usuário digita um novo evento
       const slugField = $("#ev-slug");
       if (!slugField.value || slugField.dataset.auto === "1") {
         slugField.value = slugify(e.target.value);
@@ -286,6 +374,13 @@
     $$("[data-close]").forEach(b => {
       b.addEventListener("click", () => {
         document.getElementById(b.getAttribute("data-close")).classList.remove("show");
+      });
+    });
+
+    // Fechar ao clicar fora do .modal
+    $$(".modal-overlay").forEach(o => {
+      o.addEventListener("click", (e) => {
+        if (e.target === o) o.classList.remove("show");
       });
     });
 
@@ -339,7 +434,6 @@
       return;
     }
 
-    // Verificar slug duplicado
     try {
       const dupSnap = await db.collection("events").where("slug", "==", slug).get();
       const dup = dupSnap.docs.find(d => d.id !== id);
@@ -391,6 +485,7 @@
 
   async function populateEventFilter() {
     const select = $("#filter-event");
+    const currentValue = select.value;
     select.innerHTML = '<option value="">Todos os eventos</option>';
     if (!currentEvents.length) {
       try {
@@ -404,6 +499,7 @@
       opt.textContent = ev.nome || ev.slug || ev.id;
       select.appendChild(opt);
     });
+    if (currentValue) select.value = currentValue;
   }
 
   function bindRegistrations() {
@@ -424,12 +520,10 @@
       let q = db.collection("registrations");
       if (eventId) q = q.where("eventId", "==", eventId);
       if (status) q = q.where("statusPagamento", "==", status);
-      // ordenação por createdAt — pode exigir índice composto se houver filtros
       let snap;
       try {
         snap = await q.orderBy("createdAt", "desc").limit(500).get();
       } catch (err) {
-        // fallback caso o índice não exista
         snap = await q.limit(500).get();
       }
       currentRegs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -448,12 +542,11 @@
     tbody.innerHTML = "";
 
     if (!currentRegs.length) {
-      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:30px">Nenhuma inscrição encontrada.</td></tr>';
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhuma inscrição encontrada com esses filtros.</td></tr>';
       $("#regs-table-wrap").style.display = "block";
       return;
     }
 
-    // Stats
     let totalArrecadado = 0;
     let pagos = 0, pendentes = 0;
     currentRegs.forEach(r => {
@@ -482,7 +575,7 @@
         <td>${r.quantidade || 1}</td>
         <td>${formatBRL(r.valorTotal)}</td>
         <td>${badgeStatus(r.statusPagamento)}</td>
-        <td><button class="btn btn-secondary btn-sm" data-view="${r.id}">Ver</button></td>
+        <td><button class="btn btn-secondary btn-xs" data-view="${r.id}">${ICONS.eye}<span>Ver</span></button></td>
       `;
       tbody.appendChild(tr);
     });
@@ -521,17 +614,24 @@
     `).join("");
 
     body.innerHTML = `
-      <div style="margin-bottom:14px">
-        <div><b>Evento:</b> ${escapeHTML(r.eventNome || r.eventSlug || r.eventId)}</div>
-        <div><b>Status:</b> ${badgeStatus(r.statusPagamento)}</div>
-        <div><b>Valor total:</b> ${formatBRL(r.valorTotal)}</div>
-        <div><b>Criado em:</b> ${formatTimestamp(r.createdAt)}</div>
-        <div><b>ID MP Preference:</b> ${escapeHTML(r.mercadoPagoPreferenceId || "—")}</div>
-        <div><b>ID MP Payment:</b> ${escapeHTML(r.mercadoPagoPaymentId || "—")}</div>
-        <div><b>Registration ID:</b> <code>${r.id}</code></div>
+      <div class="card-section">
+        <div class="card-section-title">Resumo</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;line-height:1.7">
+          <div><b>Evento:</b><br>${escapeHTML(r.eventNome || r.eventSlug || r.eventId)}</div>
+          <div><b>Status:</b><br>${badgeStatus(r.statusPagamento)}</div>
+          <div><b>Valor total:</b><br>${formatBRL(r.valorTotal)}</div>
+          <div><b>Criado em:</b><br>${formatTimestamp(r.createdAt)}</div>
+          <div style="grid-column:1/-1;font-size:12px;color:var(--text-muted);word-break:break-all;border-top:1px dashed var(--border);padding-top:10px;margin-top:4px">
+            <div><b>Preference ID:</b> ${escapeHTML(r.mercadoPagoPreferenceId || "—")}</div>
+            <div><b>Payment ID:</b> ${escapeHTML(r.mercadoPagoPaymentId || "—")}</div>
+            <div><b>Registration ID:</b> <code>${r.id}</code></div>
+          </div>
+        </div>
       </div>
-      <h3 style="margin:18px 0 10px;font-size:15px">Participantes (${r.quantidade || 1})</h3>
-      ${participantesHtml}
+      <div class="card-section">
+        <div class="card-section-title">Participantes (${r.quantidade || 1})</div>
+        ${participantesHtml}
+      </div>
     `;
     $("#reg-modal").classList.add("show");
   }
@@ -582,7 +682,6 @@
       }).join(";")
     ).join("\r\n");
 
-    // BOM para Excel reconhecer UTF-8
     const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
