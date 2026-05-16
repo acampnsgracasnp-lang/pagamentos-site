@@ -16,23 +16,47 @@
 
   <!-- TELA DE LOGIN -->
   <div id="login-screen" class="login-wrapper">
+    <div class="login-decor" aria-hidden="true">
+      <span class="login-blob blob-1"></span>
+      <span class="login-blob blob-2"></span>
+      <span class="login-blob blob-3"></span>
+    </div>
+
     <div class="login-box">
-      <div class="brand" style="justify-content:center">
-        <span class="brand-mark">P</span>
-        <span>Painel Admin</span>
+      <div class="login-logo" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <rect x="3" y="4" width="18" height="18" rx="3"/>
+          <path d="M16 2v4M8 2v4M3 10h18"/>
+          <path d="M9 14h6M9 18h4"/>
+        </svg>
       </div>
-      <h1>Acesso restrito</h1>
-      <p class="login-sub">Entre com a senha do organizador para gerenciar eventos e inscrições.</p>
+
+      <h1>Painel Administrativo</h1>
+      <p class="login-sub">Gestão de eventos, inscrições e pagamentos</p>
+
       <form id="login-form">
         <div class="form-group">
           <label for="login-password">Senha de acesso</label>
-          <input type="password" id="login-password" required autocomplete="current-password" placeholder="••••••••">
+          <div class="login-input-wrap">
+            <svg class="login-input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+            <input type="password" id="login-password" required autocomplete="current-password" placeholder="Digite sua senha">
+          </div>
         </div>
-        <button type="submit" class="btn btn-primary btn-block btn-lg">Entrar no painel</button>
-        <p class="text-muted text-xs text-center mt-2">
-          Em produção, ative o Firebase Authentication (veja o README).
-        </p>
+        <button type="submit" class="btn btn-primary btn-block btn-lg">
+          <span>Entrar</span>
+          <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+        </button>
       </form>
+
+      <div class="login-footer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        <span>Acesso restrito ao organizador</span>
+      </div>
     </div>
   </div>
 
@@ -106,7 +130,7 @@
           <div class="stat-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           </div>
-          <div class="stat-label">Vagas disponíveis</div>
+          <div class="stat-label">Vagas restantes</div>
           <div class="stat-value" id="admin-stat-vagas">—</div>
           <div class="stat-hint">Considerando todos os eventos</div>
         </div>
@@ -127,6 +151,17 @@
 
       <!-- ABA EVENTOS -->
       <div id="tab-events" class="tab-content active" role="tabpanel">
+        <div class="section-head">
+          <div class="section-head-text">
+            <h2>Eventos</h2>
+            <p>Crie, edite e acompanhe seus eventos</p>
+          </div>
+          <button type="button" class="btn btn-primary btn-sm section-head-action" id="btn-new-event-2">
+            <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <span>Novo evento</span>
+          </button>
+        </div>
+
         <div id="events-loading" class="loading">
           <div class="spinner"></div>
           <p>Carregando eventos…</p>
@@ -150,7 +185,18 @@
       <!-- ABA INSCRITOS -->
       <div id="tab-registrations" class="tab-content" role="tabpanel">
 
+        <div class="section-head">
+          <div class="section-head-text">
+            <h2>Inscritos</h2>
+            <p>Consulte inscrições, pagamentos e participantes</p>
+          </div>
+        </div>
+
         <div class="filter-bar">
+          <div class="filter-bar-head">
+            <svg class="icon-inline" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z"/></svg>
+            <span>Filtrar inscrições</span>
+          </div>
           <div class="filter-row">
             <div class="form-group">
               <label for="filter-event">Evento</label>
@@ -186,23 +232,45 @@
 
         <div id="regs-stats" class="stats-grid hidden" style="margin-bottom:18px">
           <div class="stat-card accent-brand">
-            <div class="stat-label">Total</div>
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            </div>
+            <div class="stat-label">Total de inscrições</div>
             <div class="stat-value" id="stat-total">0</div>
-            <div class="stat-hint">Inscrições no filtro atual</div>
+            <div class="stat-hint">No filtro atual</div>
           </div>
           <div class="stat-card accent-success">
-            <div class="stat-label">Pagos</div>
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+            </div>
+            <div class="stat-label">Pagas</div>
             <div class="stat-value" id="stat-pagos">0</div>
+            <div class="stat-hint">Pagamentos aprovados</div>
           </div>
           <div class="stat-card accent-warning">
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
             <div class="stat-label">Pendentes</div>
             <div class="stat-value" id="stat-pendentes">0</div>
+            <div class="stat-hint">Aguardando pagamento</div>
           </div>
           <div class="stat-card accent-violet">
-            <div class="stat-label">Arrecadado</div>
+            <div class="stat-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            </div>
+            <div class="stat-label">Receita confirmada</div>
             <div class="stat-value" id="stat-arrecadado">R$ 0</div>
-            <div class="stat-hint">Somatório pagos</div>
+            <div class="stat-hint">Somatório de pagamentos</div>
           </div>
+        </div>
+
+        <div id="regs-empty" class="empty-state hidden">
+          <div class="empty-icon">
+            <svg class="icon-md" viewBox="0 0 24 24" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3>Nenhuma inscrição encontrada</h3>
+          <p>Quando alguém se inscrever, os dados aparecerão aqui. Você também pode tentar ajustar os filtros acima.</p>
         </div>
 
         <div class="table-wrap" id="regs-table-wrap" style="display:none">
@@ -344,7 +412,10 @@
   <div class="modal-overlay" id="reg-modal" role="dialog" aria-modal="true">
     <div class="modal">
       <div class="modal-header">
-        <h2>Detalhes da inscrição</h2>
+        <div>
+          <h2>Detalhes da inscrição</h2>
+          <div class="modal-sub">Dados completos do pagamento e participantes</div>
+        </div>
         <button type="button" class="modal-close" data-close="reg-modal" aria-label="Fechar">&times;</button>
       </div>
       <div class="modal-body" id="reg-modal-body"></div>

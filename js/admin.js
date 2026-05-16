@@ -356,6 +356,8 @@
   // ------------------- MODAL EVENTO ---------------------------
   function bindEventModal() {
     $("#btn-new-event").addEventListener("click", () => openEditModal(null));
+    const btnNew2 = document.getElementById("btn-new-event-2");
+    if (btnNew2) btnNew2.addEventListener("click", () => openEditModal(null));
 
     $("#ev-nome").addEventListener("input", (e) => {
       const slugField = $("#ev-slug");
@@ -512,6 +514,8 @@
     $("#regs-loading").classList.remove("hidden");
     $("#regs-table-wrap").style.display = "none";
     $("#regs-stats").classList.add("hidden");
+    const emptyEl = document.getElementById("regs-empty");
+    if (emptyEl) emptyEl.classList.add("hidden");
 
     const eventId = $("#filter-event").value;
     const status = $("#filter-status").value;
@@ -540,12 +544,15 @@
     $("#regs-loading").classList.add("hidden");
     const tbody = $("#regs-tbody");
     tbody.innerHTML = "";
+    const emptyEl = document.getElementById("regs-empty");
 
     if (!currentRegs.length) {
-      tbody.innerHTML = '<tr class="empty-row"><td colspan="8">Nenhuma inscrição encontrada com esses filtros.</td></tr>';
-      $("#regs-table-wrap").style.display = "block";
+      $("#regs-table-wrap").style.display = "none";
+      $("#regs-stats").classList.add("hidden");
+      if (emptyEl) emptyEl.classList.remove("hidden");
       return;
     }
+    if (emptyEl) emptyEl.classList.add("hidden");
 
     let totalArrecadado = 0;
     let pagos = 0, pendentes = 0;
