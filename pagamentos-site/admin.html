@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel Administrativo — Eventos</title>
+  <link rel="stylesheet" href="css/style.css">
+
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+  <!-- TELA DE LOGIN -->
+  <div id="login-screen" class="login-wrapper">
+    <div class="login-box">
+      <h1>Painel Admin</h1>
+      <p class="login-sub">Acesso restrito ao organizador</p>
+      <form id="login-form">
+        <div class="form-group">
+          <label>Senha de acesso</label>
+          <input type="password" id="login-password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+        <p class="text-muted mt-2 text-center" style="font-size:12px">
+          Para produção, ative o Firebase Authentication (veja README).
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- PAINEL ADMIN -->
+  <div id="admin-screen" class="hidden">
+    <div class="container-wide">
+      <header class="admin-header">
+        <h1>Painel Administrativo</h1>
+        <div style="display:flex;gap:10px">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-new-event">+ Novo evento</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-logout">Sair</button>
+        </div>
+      </header>
+
+      <div class="tabs">
+        <button type="button" class="tab active" data-tab="events">Eventos</button>
+        <button type="button" class="tab" data-tab="registrations">Inscritos</button>
+      </div>
+
+      <!-- ABA: EVENTOS -->
+      <div id="tab-events" class="tab-content active">
+        <div id="events-loading" class="loading">
+          <div class="spinner"></div>
+          <p>Carregando eventos...</p>
+        </div>
+        <div id="events-empty" class="card hidden text-center">
+          <p class="text-muted">Nenhum evento criado ainda.</p>
+          <button class="btn btn-primary mt-2" onclick="document.getElementById('btn-new-event').click()">+ Criar primeiro evento</button>
+        </div>
+        <div id="events-list" class="event-list"></div>
+      </div>
+
+      <!-- ABA: INSCRITOS -->
+      <div id="tab-registrations" class="tab-content">
+        <div class="card card-compact">
+          <div class="form-row">
+            <div class="form-group">
+              <label>Filtrar por evento</label>
+              <select id="filter-event">
+                <option value="">Todos os eventos</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Filtrar por status</label>
+              <select id="filter-status">
+                <option value="">Todos</option>
+                <option value="pago">Pago</option>
+                <option value="pendente">Pendente</option>
+                <option value="recusado">Recusado</option>
+                <option value="cancelado">Cancelado</option>
+              </select>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button type="button" class="btn btn-primary btn-sm" id="btn-load-regs">Buscar</button>
+            <button type="button" class="btn btn-success btn-sm" id="btn-export-csv">Exportar CSV</button>
+          </div>
+        </div>
+
+        <div id="regs-loading" class="loading hidden">
+          <div class="spinner"></div>
+          <p>Carregando inscritos...</p>
+        </div>
+
+        <div id="regs-stats" class="event-info hidden">
+          <div class="info-item">
+            <div class="info-label">Total</div>
+            <div class="info-value" id="stat-total">0</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Pagos</div>
+            <div class="info-value" id="stat-pagos">0</div>
+          </div>
+          <div class="info-item">
+            <div class="info-label">Pendentes</div>
+            <div class="info-value" id="stat-pendentes">0</div>
+          </div>
+          <div class="info-item highlight">
+            <div class="info-label">Arrecadado</div>
+            <div class="info-value" id="stat-arrecadado">R$ 0</div>
+          </div>
+        </div>
+
+        <div class="table-wrap" id="regs-table-wrap" style="display:none">
+          <table>
+            <thead>
+              <tr>
+                <th>Data</th>
+                <th>Evento</th>
+                <th>Responsável</th>
+                <th>Tel.</th>
+                <th>Qtd</th>
+                <th>Valor</th>
+                <th>Status</th>
+                <th>Ações</th>
+              </tr>
+            </thead>
+            <tbody id="regs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: criar/editar evento -->
+  <div class="modal-overlay" id="event-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2 id="event-modal-title">Novo evento</h2>
+        <button type="button" class="modal-close" data-close="event-modal">&times;</button>
+      </div>
+      <form id="event-form">
+        <div class="modal-body">
+          <input type="hidden" id="event-id">
+
+          <div class="form-group">
+            <label>Nome do evento <span class="required">*</span></label>
+            <input type="text" id="ev-nome" required>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Slug (URL) <span class="required">*</span></label>
+              <input type="text" id="ev-slug" required placeholder="mulheres, retiro, acampamento">
+              <div class="field-hint">Será usado em: index.html?evento=<b id="slug-preview">slug</b></div>
+            </div>
+            <div class="form-group">
+              <label>Ativo</label>
+              <select id="ev-ativo">
+                <option value="true">Sim — aceitar inscrições</option>
+                <option value="false">Não — pausar</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Descrição</label>
+            <textarea id="ev-descricao" placeholder="Descreva o evento..."></textarea>
+          </div>
+
+          <div class="form-row-3">
+            <div class="form-group">
+              <label>Valor (R$) <span class="required">*</span></label>
+              <input type="number" id="ev-valor" min="0" step="0.01" required>
+            </div>
+            <div class="form-group">
+              <label>Limite ingressos <span class="required">*</span></label>
+              <input type="number" id="ev-limite" min="1" step="1" required>
+            </div>
+            <div class="form-group">
+              <label>Ingressos vendidos</label>
+              <input type="number" id="ev-vendidos" min="0" step="1" value="0">
+              <div class="field-hint">Atualizado automaticamente pelo webhook.</div>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label>Data do evento</label>
+              <input type="date" id="ev-data">
+            </div>
+            <div class="form-group">
+              <label>Local</label>
+              <input type="text" id="ev-local">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>URL do banner (imagem)</label>
+            <input type="url" id="ev-banner" placeholder="https://...">
+          </div>
+
+          <div class="form-group">
+            <label>Exige camiseta?</label>
+            <select id="ev-exige-camiseta">
+              <option value="true">Sim — perguntar tamanho</option>
+              <option value="false">Não</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Tamanhos disponíveis</label>
+            <input type="text" id="ev-tamanhos" value="PP, P, M, G, GG, XG">
+            <div class="field-hint">Separe por vírgula.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-close="event-modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar evento</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: detalhes da inscrição -->
+  <div class="modal-overlay" id="reg-modal">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>Detalhes da inscrição</h2>
+        <button type="button" class="modal-close" data-close="reg-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="reg-modal-body"></div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-close="reg-modal">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/firebase-config.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html>
