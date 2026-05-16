@@ -824,6 +824,26 @@
     font-size: 13.5px;
     margin-top: 4px;
   }
+  .total-box .total-fee-note{
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--success-deep, #1f7a4d);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .total-box .total-fee-note::before{
+    content: "✓";
+    display: inline-grid;
+    place-items: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #2eb872;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+  }
   .total-box .total-value{
     font-family: var(--font-serif);
     font-weight: 600;
@@ -1003,7 +1023,7 @@
       </div>
       <div class="info-cell highlight">
         <div class="info-label">Investimento</div>
-        <div class="info-value" id="event-price">R$ 120,00<small>por inscrição</small></div>
+        <div class="info-value" id="event-price">R$ 120<small>sem camiseta · R$ 170 com camiseta</small></div>
       </div>
       <div class="info-cell">
         <div class="info-label">Vagas</div>
@@ -1074,7 +1094,7 @@
       <div class="section-header">
         <div class="section-eyebrow">A camiseta do encontro</div>
         <h2 class="section-title">"Movidas pelo Espírito"</h2>
-        <p class="section-sub">Cada participante leva pra casa a camiseta oficial do encontro — confeccionada em malha de algodão, com a estampa exclusiva criada para esta primeira edição.</p>
+        <p class="section-sub">A camiseta oficial do encontro — malha de algodão, estampa exclusiva desta primeira edição. <strong>Opcional</strong>: inscrição com camiseta sai <strong>R$ 170</strong>; sem camiseta, <strong>R$ 120</strong>.</p>
       </div>
 
       <div class="shirt-grid">
@@ -1163,12 +1183,12 @@
                 <tr><th>Tamanho</th><th>Altura</th><th>Largura</th></tr>
               </thead>
               <tbody>
-                <tr><td>PP</td><td>60 cm</td><td>44 cm</td></tr>
                 <tr><td>P</td><td>63 cm</td><td>47 cm</td></tr>
                 <tr><td>M</td><td>66 cm</td><td>50 cm</td></tr>
                 <tr><td>G</td><td>73 cm</td><td>55 cm</td></tr>
                 <tr><td>GG</td><td>78 cm</td><td>60 cm</td></tr>
                 <tr><td>XG</td><td>82 cm</td><td>64 cm</td></tr>
+                <tr><td>XXG</td><td>86 cm</td><td>68 cm</td></tr>
               </tbody>
             </table>
           </div>
@@ -1242,7 +1262,8 @@
             <div class="total-box">
               <div>
                 <div class="total-label">Total a pagar</div>
-                <div class="total-break" id="total-breakdown">1 × R$ 120,00</div>
+                <div class="total-break" id="total-breakdown">1 × R$ 120,00 (sem camiseta)</div>
+                <div class="total-fee-note">Valor final — taxas de cartão e PIX já incluídas. Você não paga nada além disso.</div>
               </div>
               <div class="total-value" id="total-value">R$ 120<small>,00</small></div>
             </div>
@@ -1264,6 +1285,8 @@
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
                 PIX e cartão
               </span>
+              <span class="sep">•</span>
+              <span>Sem taxa extra para você</span>
             </div>
           </div>
 
@@ -1316,21 +1339,32 @@
     return { reais: "R$ " + a, cents: "," + b };
   };
 
-  /* ------- estado ------- */
+  /* ------- estado -------
+     Preços (taxas de cartão JÁ embutidas — cliente paga o valor cheio):
+       - Inscrição sem camiseta:  R$ 120
+       - Inscrição com camiseta:  R$ 170  (R$ 120 + R$ 50 da camiseta)
+     ----------------------------------------------------- */
   let eventData = {
     slug: DEFAULT_SLUG,
     nome: "1º Encontro de Mulheres — Movidas pelo Espírito",
-    valor: 120,
+    valor: 120,                 // valor da inscrição (sem camiseta)
+    precoCamiseta: 50,          // adicional cobrado se a participante escolher tamanho
     limiteIngressos: 250,
     ingressosVendidos: 0,
     exigeCamiseta: true,
-    tamanhos: ["PP","P","M","G","GG","XG","Não desejo camiseta"],
+    tamanhos: ["P","M","G","GG","XG","XXG","Não desejo camiseta"],
     data: "",
     local: "",
     descricao: "",
     bannerUrl: ""
   };
   let qty = 1;
+
+  // helper: dado um valor de "tamanho" salvo no form, decide se cobra a camiseta
+  function temCamiseta(tamanho) {
+    if (!tamanho) return false;
+    return !/n[ãa]o\s*dese/i.test(String(tamanho));
+  }
 
   /* =========================================================
      CARREGAMENTO DO EVENTO
@@ -1361,9 +1395,10 @@
 
     if (eventData.data)      $("event-date").innerHTML       = eventData.data;
     if (eventData.local)     $("event-location").innerHTML   = eventData.local;
-    if (eventData.valor)     {
-      const s = fmtBRLSplit(eventData.valor);
-      $("event-price").innerHTML = `${s.reais}<small>por inscrição</small>`;
+    if (eventData.valor) {
+      const base = fmtBRLSplit(eventData.valor);
+      const comCam = fmtBRLSplit(eventData.valor + (eventData.precoCamiseta || 0));
+      $("event-price").innerHTML = `${base.reais}<small>sem camiseta · ${comCam.reais} com camiseta</small>`;
     }
     const restante = Math.max(0, (eventData.limiteIngressos||0) - (eventData.ingressosVendidos||0));
     if (eventData.limiteIngressos) {
@@ -1386,7 +1421,7 @@
      PARTICIPANTES
      ========================================================= */
   function participantTemplate(idx){
-    const sizes = eventData.tamanhos || ["PP","P","M","G","GG","XG"];
+    const sizes = eventData.tamanhos || ["P","M","G","GG","XG","XXG","Não desejo camiseta"];
     const sizeOptionsHTML = sizes.map((sz, i) => {
       const isNoShirt = /n[ãa]o\s*dese/i.test(sz);
       return `
@@ -1446,6 +1481,10 @@
           <div class="field">
             <label>Tamanho da camiseta <span class="req">*</span></label>
             <div class="size-options">${sizeOptionsHTML}</div>
+            <div class="field-hint">
+              Inscrição com camiseta: <strong>${fmtBRL(eventData.valor + (eventData.precoCamiseta||0))}</strong> ·
+              Sem camiseta: <strong>${fmtBRL(eventData.valor)}</strong>
+            </div>
           </div>
         ` : ""}
 
@@ -1493,6 +1532,11 @@
       });
     });
 
+    // recalcula o total sempre que a participante mudar a opção de camiseta
+    c.querySelectorAll("input[type='radio'][name^='size-']").forEach(r => {
+      r.addEventListener("change", updateTotal);
+    });
+
     updateTotal();
   }
 
@@ -1513,11 +1557,29 @@
     $("qty-minus").disabled = qty <= 1;
   }
 
+  /* Soma dinâmica:
+       base × quantidade  +  precoCamiseta × (participantes que escolheram tamanho)
+     Enquanto a participante ainda não escolheu um tamanho, assume "sem camiseta"
+     no breakdown — mas mostra os dois cenários no rodapé para deixar claro. */
   function updateTotal(){
-    const total = qty * (eventData.valor || 0);
+    const base = Number(eventData.valor) || 0;
+    const precoCam = Number(eventData.precoCamiseta) || 0;
+
+    let comCamiseta = 0;
+    for (let i = 0; i < qty; i++) {
+      const sel = document.querySelector(`input[name="size-${i}"]:checked`);
+      if (sel && temCamiseta(sel.value)) comCamiseta++;
+    }
+    const semCamiseta = qty - comCamiseta;
+
+    const total = qty * base + comCamiseta * precoCam;
     const s = fmtBRLSplit(total);
     $("total-value").innerHTML = `${s.reais}<small>${s.cents}</small>`;
-    $("total-breakdown").textContent = `${qty} × ${fmtBRL(eventData.valor || 0)}`;
+
+    const partes = [];
+    if (semCamiseta > 0) partes.push(`${semCamiseta} × ${fmtBRL(base)} (sem camiseta)`);
+    if (comCamiseta > 0) partes.push(`${comCamiseta} × ${fmtBRL(base + precoCam)} (com camiseta)`);
+    $("total-breakdown").textContent = partes.join("  +  ") || `${qty} × ${fmtBRL(base)}`;
   }
 
   /* =========================================================
@@ -1561,7 +1623,11 @@
     btnTxt.textContent = "Processando…";
 
     try {
-      const total = qty * (eventData.valor || 0);
+      // total = base × quantidade + R$ precoCamiseta para cada participante que escolheu tamanho
+      const base = Number(eventData.valor) || 0;
+      const precoCam = Number(eventData.precoCamiseta) || 0;
+      const comCamiseta = participants.filter(p => temCamiseta(p.tamanhoCamiseta)).length;
+      const total = qty * base + comCamiseta * precoCam;
 
       if (!db || !eventData.id) {
         alert("Evento não encontrado no Firestore. Crie o evento pelo painel /admin antes de aceitar inscrições.");
@@ -1576,7 +1642,9 @@
         eventNome:       eventData.nome || "",
         participantes:   participants,
         quantidade:      qty,
-        valorUnitario:   Number(eventData.valor) || 0,
+        valorUnitario:   base,
+        precoCamiseta:   precoCam,
+        comCamiseta:     comCamiseta,
         valorTotal:      total,
         statusPagamento: "pendente",
         mercadoPagoPreferenceId: "",
@@ -1596,7 +1664,9 @@
           quantidade:     qty,
           valorTotal:     total,
           titulo:         `Inscrição — ${eventData.nome || "Evento"}`,
-          descricao:      `${qty} inscrição(ões)`,
+          descricao:      comCamiseta > 0
+                            ? `${qty} inscrição(ões) · ${comCamiseta} com camiseta`
+                            : `${qty} inscrição(ões)`,
           payer: {
             name:  participants[0]?.nome     || "",
             phone: participants[0]?.telefone || ""
