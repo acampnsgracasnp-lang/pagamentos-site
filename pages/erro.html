@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#fbf5f1">
+<title>Pagamento não concluído</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --paper:#fbf5f1; --blush-soft:#fce6e3;
+    --rose:#b8456e; --rose-deep:#8b2d52; --wine:#5b1830;
+    --gold:#b8935a; --muted:#8a6772; --line:#e8d3cd; --ink:#2a1820;
+    --font-serif:"Fraunces",Georgia,serif;
+    --font-sans:"Manrope",-apple-system,system-ui,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  body{
+    margin:0; font-family:var(--font-sans); color:var(--ink);
+    background:var(--paper);
+    background-image:
+      radial-gradient(1000px 500px at 10% -10%, rgba(184,69,110,.10), transparent 60%),
+      radial-gradient(800px 400px at 110% 10%, rgba(184,147,90,.06), transparent 60%);
+    min-height:100vh;
+  }
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(251,245,241,.85);
+    backdrop-filter:saturate(140%) blur(14px);
+    -webkit-backdrop-filter:saturate(140%) blur(14px);
+    border-bottom:1px solid rgba(232,211,205,.7);
+  }
+  .topbar-inner{
+    max-width:1120px;margin:0 auto;padding:14px 22px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    font-family:var(--font-serif);font-weight:500;font-size:18px;color:var(--wine);
+  }
+  .brand-mark{
+    width:32px;height:32px;display:grid;place-items:center;border-radius:50%;
+    background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:var(--paper);
+    font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:17px;
+  }
+  .container{max-width:680px;margin:0 auto;padding:32px 22px 80px;}
+  .error-hero{
+    margin-top:24px;
+    background:linear-gradient(180deg,#fde8ec 0%,#fff5f7 100%);
+    border:1px solid #f0c4ce; border-radius:28px;
+    padding:52px 32px 40px; text-align:center;
+    box-shadow:0 12px 32px rgba(91,24,48,.06);
+  }
+  .error-icon{
+    width:84px;height:84px;border-radius:50%;
+    background:linear-gradient(135deg,var(--rose),var(--rose-deep));
+    color:#fff;display:grid;place-items:center;margin:0 auto 22px;
+    font-size:40px; box-shadow:0 12px 32px rgba(184,69,110,.35);
+  }
+  .eyebrow{
+    font-size:11.5px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--rose-deep); font-weight:700; margin-bottom:10px;
+  }
+  h1{
+    font-family:var(--font-serif); font-weight:400; font-style:italic;
+    font-size:clamp(28px,5vw,42px); line-height:1.1; color:var(--wine); margin:0;
+  }
+  h1 .strong{display:block; font-style:normal; font-weight:600; color:var(--rose-deep);}
+  .sub{
+    font-family:var(--font-serif); font-style:italic; color:var(--muted);
+    font-size:clamp(15px,2vw,18px); max-width:520px; margin:14px auto 0;
+  }
+  .meta{
+    margin-top:24px; font-size:12.5px; color:var(--muted);
+    font-family:ui-monospace,Menlo,monospace; word-break:break-all;
+  }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:10px;
+    padding:14px 22px; border:none; border-radius:999px;
+    font-weight:700; font-size:15px; cursor:pointer;
+    text-decoration:none; font-family:var(--font-sans);
+    transition:transform .15s, box-shadow .15s;
+  }
+  .btn-back{
+    background:linear-gradient(135deg,var(--rose-deep),var(--wine));
+    color:#fff; margin-top:24px;
+    box-shadow:0 8px 22px rgba(91,24,48,.22);
+  }
+  .btn-back:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(91,24,48,.30);}
+  .site-footer{
+    text-align:center;padding:40px 22px;color:var(--muted);
+    font-size:13px;border-top:1px solid var(--line);margin-top:60px;
+    background:rgba(255,255,255,.4);
+  }
+  .site-footer .org{
+    font-family:var(--font-serif);font-style:italic;color:var(--wine);
+    font-weight:500;font-size:15px;margin-bottom:4px;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">M</span>
+      <span>Movidas pelo Espírito</span>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <section class="error-hero">
+    <div class="error-icon">✕</div>
+    <div class="eyebrow">Algo deu errado</div>
+    <h1>
+      <span>Pagamento</span>
+      <span class="strong">não concluído</span>
+    </h1>
+    <p class="sub">
+      Não foi possível concluir o pagamento. Isso pode acontecer por recusa do cartão,
+      expiração da sessão ou cancelamento. Você pode tentar de novo — sua inscrição só
+      é confirmada após a aprovação.
+    </p>
+    <div class="meta" id="status-meta"></div>
+    <a href="/" class="btn btn-back">Tentar novamente</a>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="org">Associação do Movimento Acampamento</div>
+  <div>1º Encontro de Mulheres — Movidas pelo Espírito · © 2026</div>
+</footer>
+
+<script>
+(function () {
+  const params = new URLSearchParams(location.search);
+  const regId = params.get("registrationId") || params.get("reg") || "";
+  if (regId) {
+    document.getElementById("status-meta").textContent = "ID da inscrição: " + regId;
+  }
+})();
+</script>
+</body>
+</html>

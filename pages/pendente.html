@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#fbf5f1">
+<title>Pagamento pendente — aguardando confirmação</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<style>
+  :root{
+    --paper:#fbf5f1; --blush-soft:#fce6e3;
+    --rose:#b8456e; --rose-deep:#8b2d52; --wine:#5b1830;
+    --gold:#b8935a; --muted:#8a6772; --line:#e8d3cd; --ink:#2a1820;
+    --font-serif:"Fraunces",Georgia,serif;
+    --font-sans:"Manrope",-apple-system,system-ui,sans-serif;
+  }
+  *,*::before,*::after{box-sizing:border-box;}
+  body{
+    margin:0; font-family:var(--font-sans); color:var(--ink);
+    background:var(--paper);
+    background-image:
+      radial-gradient(1000px 500px at 10% -10%, rgba(184,147,90,.10), transparent 60%),
+      radial-gradient(800px 400px at 110% 10%, rgba(184,69,110,.06), transparent 60%);
+    min-height:100vh;
+  }
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(251,245,241,.85);
+    backdrop-filter:saturate(140%) blur(14px);
+    -webkit-backdrop-filter:saturate(140%) blur(14px);
+    border-bottom:1px solid rgba(232,211,205,.7);
+  }
+  .topbar-inner{
+    max-width:1120px;margin:0 auto;padding:14px 22px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    font-family:var(--font-serif);font-weight:500;font-size:18px;color:var(--wine);
+  }
+  .brand-mark{
+    width:32px;height:32px;display:grid;place-items:center;border-radius:50%;
+    background:linear-gradient(135deg,var(--rose),var(--rose-deep));color:var(--paper);
+    font-family:var(--font-serif);font-style:italic;font-weight:500;font-size:17px;
+  }
+  .container{max-width:680px;margin:0 auto;padding:32px 22px 80px;}
+  .pending-hero{
+    margin-top:24px;
+    background:linear-gradient(180deg,#fff7e8 0%,#fffaf2 100%);
+    border:1px solid #ecd6a8; border-radius:28px;
+    padding:52px 32px 40px; text-align:center;
+    box-shadow:0 12px 32px rgba(91,24,48,.06);
+  }
+  .pending-icon{
+    width:84px;height:84px;border-radius:50%;
+    background:linear-gradient(135deg,var(--gold),#8a6730);
+    color:#fff;display:grid;place-items:center;margin:0 auto 22px;
+    font-size:36px; box-shadow:0 12px 32px rgba(184,147,90,.35);
+    animation:pulseGold 2s ease-in-out infinite;
+  }
+  @keyframes pulseGold{
+    0%,100%{transform:scale(1);} 50%{transform:scale(1.05);}
+  }
+  .eyebrow{
+    font-size:11.5px;letter-spacing:.28em;text-transform:uppercase;
+    color:#8a6730; font-weight:700; margin-bottom:10px;
+  }
+  h1{
+    font-family:var(--font-serif); font-weight:400; font-style:italic;
+    font-size:clamp(28px,5vw,42px); line-height:1.1; color:var(--wine);
+    margin:0;
+  }
+  h1 .strong{
+    display:block; font-style:normal; font-weight:600; color:var(--rose-deep);
+  }
+  .sub{
+    font-family:var(--font-serif); font-style:italic; color:var(--muted);
+    font-size:clamp(15px,2vw,18px); max-width:520px; margin:14px auto 0;
+  }
+  .meta{
+    margin-top:24px; font-size:12.5px; color:var(--muted);
+    font-family:ui-monospace,Menlo,monospace; word-break:break-all;
+  }
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:10px;
+    padding:14px 22px; border:none; border-radius:999px;
+    font-weight:700; font-size:15px; cursor:pointer;
+    text-decoration:none; font-family:var(--font-sans);
+    transition:transform .15s, box-shadow .15s;
+  }
+  .btn-back{
+    background:linear-gradient(135deg,var(--rose-deep),var(--wine));
+    color:#fff; margin-top:24px;
+    box-shadow:0 8px 22px rgba(91,24,48,.22);
+  }
+  .btn-back:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(91,24,48,.30);}
+  .site-footer{
+    text-align:center;padding:40px 22px;color:var(--muted);
+    font-size:13px;border-top:1px solid var(--line);margin-top:60px;
+    background:rgba(255,255,255,.4);
+  }
+  .site-footer .org{
+    font-family:var(--font-serif);font-style:italic;color:var(--wine);
+    font-weight:500;font-size:15px;margin-bottom:4px;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">M</span>
+      <span>Movidas pelo Espírito</span>
+    </div>
+  </div>
+</header>
+
+<main class="container">
+  <section class="pending-hero">
+    <div class="pending-icon">⏳</div>
+    <div class="eyebrow">Aguardando confirmação</div>
+    <h1>
+      <span>Pagamento em</span>
+      <span class="strong">processamento</span>
+    </h1>
+    <p class="sub" id="status-sub">
+      Se você pagou via PIX, a compensação costuma levar de alguns segundos até alguns minutos.
+      Esta página atualiza sozinha — não precisa fazer nada.
+    </p>
+    <div class="meta" id="status-meta"></div>
+    <a href="/" class="btn btn-back">Voltar ao início</a>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="org">Associação do Movimento Acampamento</div>
+  <div>1º Encontro de Mulheres — Movidas pelo Espírito · © 2026</div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+
+  /* Firebase inline (mesma config dos demais) */
+  const firebaseConfig = {
+    apiKey:"AIzaSyCrrTLJMWve_8mNptzAiMxz5ejTFE58GXA",
+    authDomain:"pagamentos-site.firebaseapp.com",
+    projectId:"pagamentos-site",
+    storageBucket:"pagamentos-site.firebasestorage.app",
+    messagingSenderId:"350551469871",
+    appId:"1:350551469871:web:98ef3105c2590f9df23bda",
+    measurementId:"G-DR9Z41XCZN"
+  };
+  if (typeof firebase !== "undefined" && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = (typeof firebase !== "undefined" && firebase.apps.length)
+    ? firebase.firestore() : null;
+
+  const params = new URLSearchParams(location.search);
+  const regId = params.get("registrationId") || params.get("reg") || "";
+  const meta = document.getElementById("status-meta");
+  if (regId) meta.textContent = "ID da inscrição: " + regId;
+
+  if (!db || !regId) return;
+
+  let tries = 0;
+  const maxTries = 60;
+  function check() {
+    tries++;
+    db.collection("registrations").doc(regId).get().then(snap => {
+      if (!snap.exists) return;
+      const st = String(snap.data().statusPagamento || "").toLowerCase();
+      if (st === "pago") {
+        /* Pagamento confirmado: redireciona para sucesso (onde está a mensagem de boas-vindas) */
+        location.replace("/sucesso?registrationId=" + encodeURIComponent(regId));
+        return;
+      }
+      if (st === "recusado" || st === "cancelado") {
+        location.replace("/erro?registrationId=" + encodeURIComponent(regId));
+        return;
+      }
+      if (tries < maxTries) setTimeout(check, 3000);
+    }).catch(() => {
+      if (tries < maxTries) setTimeout(check, 3000);
+    });
+  }
+  check();
+})();
+</script>
+</body>
+</html>

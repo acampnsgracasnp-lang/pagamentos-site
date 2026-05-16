@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+<meta name="theme-color" content="#fbf5f1">
+<title>Inscrição confirmada — Bem-vinda ao evento</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=Manrope:wght@300..800&display=swap" rel="stylesheet">
+
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<style>
+  :root{
+    --paper:        #fbf5f1;
+    --paper-warm:   #f5e9e2;
+    --blush:        #f4dadc;
+    --blush-soft:   #fce6e3;
+    --rose:         #b8456e;
+    --rose-deep:    #8b2d52;
+    --wine:         #5b1830;
+    --gold:         #b8935a;
+    --gold-soft:    #d9bf8c;
+    --ink:          #2a1820;
+    --muted:        #8a6772;
+    --line:         #e8d3cd;
+    --success:      #2eb872;
+    --success-deep: #1f7a4d;
+
+    --radius-sm:  10px;
+    --radius:     18px;
+    --radius-lg:  28px;
+
+    --shadow-sm: 0 1px 2px rgba(91,24,48,.04), 0 2px 8px rgba(91,24,48,.04);
+    --shadow:    0 4px 16px rgba(91,24,48,.06), 0 16px 48px rgba(91,24,48,.07);
+
+    --font-serif: "Fraunces", "Cormorant Garamond", Georgia, serif;
+    --font-sans:  "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--paper);
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, rgba(46,184,114,.08), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(184,147,90,.07), transparent 60%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+  button{ font: inherit; cursor: pointer; }
+  a{ color: var(--rose-deep); text-decoration: none; }
+  .hidden{ display:none !important; }
+
+  .topbar{
+    position: sticky; top:0; z-index:50;
+    background: rgba(251,245,241,.85);
+    backdrop-filter: saturate(140%) blur(14px);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+    border-bottom: 1px solid rgba(232,211,205,.7);
+  }
+  .topbar-inner{
+    max-width: 1120px; margin: 0 auto;
+    padding: 14px 22px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: .02em;
+    color: var(--wine);
+  }
+  .brand-mark{
+    width: 32px; height: 32px;
+    display:grid; place-items:center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    color: var(--paper);
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 17px;
+  }
+  .trust-pill{
+    display:inline-flex; align-items:center; gap:7px;
+    font-size: 12.5px; font-weight: 600;
+    color: var(--wine);
+    background: var(--blush-soft);
+    border: 1px solid var(--line);
+    padding: 7px 12px;
+    border-radius: 999px;
+  }
+
+  .container{
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 32px 22px 80px;
+  }
+
+  .state-card{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 56px 32px;
+    text-align: center;
+    box-shadow: var(--shadow);
+    margin-top: 32px;
+  }
+  .spinner{
+    width: 44px; height: 44px;
+    border: 3px solid var(--blush);
+    border-top-color: var(--rose);
+    border-radius: 50%;
+    margin: 0 auto 18px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin{ to { transform: rotate(360deg);} }
+
+  .confirm-hero{
+    margin-top: 24px;
+    background: linear-gradient(180deg, #eaf7ee 0%, #f3faf5 100%);
+    border: 1px solid #cfe7d6;
+    border-radius: var(--radius-lg);
+    padding: 44px 32px 36px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .confirm-hero::before,
+  .confirm-hero::after{
+    content:"";
+    position: absolute;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: .45;
+    pointer-events:none;
+  }
+  .confirm-hero::before{
+    top:-120px; left:-100px;
+    background: radial-gradient(circle, var(--success) 0%, transparent 70%);
+  }
+  .confirm-hero::after{
+    bottom:-120px; right:-100px;
+    background: radial-gradient(circle, var(--gold) 0%, transparent 70%);
+  }
+  .check-circle{
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--success) 0%, var(--success-deep) 100%);
+    color: #fff;
+    display: grid; place-items: center;
+    margin: 0 auto 22px;
+    box-shadow: 0 12px 32px rgba(46,184,114,.35);
+    position: relative; z-index: 2;
+  }
+  .check-circle svg{
+    width: 44px; height: 44px;
+    stroke: #fff;
+    stroke-width: 3;
+    fill: none;
+    stroke-linecap: round; stroke-linejoin: round;
+    animation: drawCheck .6s ease-out .2s both;
+  }
+  @keyframes drawCheck{
+    from { stroke-dasharray: 60; stroke-dashoffset: 60; }
+    to   { stroke-dasharray: 60; stroke-dashoffset: 0; }
+  }
+  .confirm-eyebrow{
+    position: relative; z-index: 2;
+    font-size: 11.5px;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--success-deep);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .confirm-title{
+    position: relative; z-index: 2;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(30px, 5vw, 44px);
+    line-height: 1.1;
+    color: var(--wine);
+    margin: 0;
+    font-variation-settings: "opsz" 144, "SOFT" 60;
+  }
+  .confirm-title .strong{
+    display: block;
+    font-style: normal;
+    font-weight: 600;
+    color: var(--rose-deep);
+  }
+  .confirm-sub{
+    position: relative; z-index: 2;
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--muted);
+    font-size: clamp(15px, 2vw, 18px);
+    max-width: 480px;
+    margin: 14px auto 0;
+  }
+
+  .message-section{ margin-top: 40px; }
+  .message-eyebrow{
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--rose);
+    font-weight: 700;
+    margin-bottom: 10px;
+  }
+  .message-title{
+    text-align: center;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(22px, 3vw, 30px);
+    color: var(--wine);
+    margin: 0 0 22px;
+  }
+
+  .message-card{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 32px;
+    box-shadow: var(--shadow);
+    position: relative;
+  }
+  .message-card::before{
+    content:"";
+    position: absolute;
+    top: -1px; left: 24px; right: 24px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--rose-deep), var(--rose), var(--gold));
+    border-radius: 999px;
+  }
+  .message-body{
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px 26px;
+    font-family: "SF Mono", "Menlo", ui-monospace, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.65;
+    color: var(--ink);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 460px;
+    overflow-y: auto;
+  }
+
+  .action-row{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 22px;
+  }
+  @media (max-width: 520px){
+    .action-row{ grid-template-columns: 1fr; }
+  }
+
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap: 10px;
+    padding: 15px 22px;
+    border: none;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s, background .15s, border-color .15s;
+    text-decoration: none;
+    letter-spacing: .01em;
+    font-family: var(--font-sans);
+  }
+  .btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+  .btn-whatsapp{
+    background: linear-gradient(135deg, #25D366, #128C7E);
+    color: #fff;
+    box-shadow: 0 8px 22px rgba(18,140,126,.25), inset 0 1px 0 rgba(255,255,255,.15);
+  }
+  .btn-whatsapp:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 12px 28px rgba(18,140,126,.35), inset 0 1px 0 rgba(255,255,255,.15);
+  }
+
+  .btn-copy{
+    background: #fff;
+    color: var(--wine);
+    border: 1.5px solid var(--line);
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-copy:hover{
+    border-color: var(--rose);
+    background: var(--blush-soft);
+    transform: translateY(-2px);
+  }
+  .btn-copy.copied{
+    background: #eaf7ee;
+    border-color: var(--success);
+    color: var(--success-deep);
+  }
+
+  .btn-back{
+    margin-top: 22px;
+    width: 100%;
+    background: linear-gradient(135deg, var(--rose-deep), var(--wine));
+    color: #fff;
+    padding: 16px 24px;
+    box-shadow: 0 8px 22px rgba(91,24,48,.22);
+  }
+  .btn-back:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 12px 30px rgba(91,24,48,.30);
+  }
+
+  .meta-row{
+    margin-top: 18px;
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-family: ui-monospace, Menlo, monospace;
+    word-break: break-all;
+  }
+
+  .toast{
+    position: fixed;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: var(--wine);
+    color: #fff;
+    padding: 12px 22px;
+    border-radius: 999px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 12px 32px rgba(0,0,0,.2);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .2s, transform .2s;
+    z-index: 999;
+  }
+  .toast.show{
+    opacity: 1; transform: translateX(-50%) translateY(0);
+  }
+
+  .alert{
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-top: 16px;
+    font-size: 14px;
+    border-left: 3px solid;
+  }
+  .alert-danger{
+    background: #fce8ec; color: var(--wine); border-color: var(--rose);
+  }
+
+  .pending-hero{
+    margin-top: 24px;
+    background: linear-gradient(180deg, #fff7e8 0%, #fffaf2 100%);
+    border: 1px solid #ecd6a8;
+    border-radius: var(--radius-lg);
+    padding: 44px 32px 36px;
+    text-align: center;
+  }
+  .pending-hero .pending-icon{
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--gold), #8a6730);
+    color: #fff;
+    display: grid; place-items: center;
+    margin: 0 auto 22px;
+    font-size: 36px;
+    box-shadow: 0 12px 32px rgba(184,147,90,.35);
+    animation: pulseGold 2s ease-in-out infinite;
+  }
+  @keyframes pulseGold{
+    0%,100% { transform: scale(1); }
+    50%     { transform: scale(1.05); }
+  }
+
+  .error-hero{
+    margin-top: 24px;
+    background: linear-gradient(180deg, #fde8ec 0%, #fff5f7 100%);
+    border: 1px solid #f0c4ce;
+    border-radius: var(--radius-lg);
+    padding: 44px 32px 36px;
+    text-align: center;
+  }
+  .error-hero .error-icon{
+    width: 84px; height: 84px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    color: #fff;
+    display: grid; place-items: center;
+    margin: 0 auto 22px;
+    font-size: 40px;
+    box-shadow: 0 12px 32px rgba(184,69,110,.35);
+  }
+
+  .site-footer{
+    text-align: center;
+    padding: 40px 22px;
+    color: var(--muted);
+    font-size: 13px;
+    border-top: 1px solid var(--line);
+    margin-top: 60px;
+    background: rgba(255,255,255,.4);
+  }
+  .site-footer .org{
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--wine);
+    font-weight: 500;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">M</span>
+      <span>Movidas pelo Espírito</span>
+    </div>
+    <span class="trust-pill">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Inscrição segura
+    </span>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- LOADING -->
+  <div id="loading-state" class="state-card">
+    <div class="spinner"></div>
+    <p style="margin:0;color:var(--muted)">Verificando sua inscrição…</p>
+  </div>
+
+  <!-- PAID / WELCOME -->
+  <div id="paid-state" class="hidden">
+    <section class="confirm-hero">
+      <div class="check-circle" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><polyline points="5 12 10 17 19 7"/></svg>
+      </div>
+      <div class="confirm-eyebrow">Pagamento aprovado</div>
+      <h1 class="confirm-title">
+        <span>Seja bem-vinda</span>
+        <span class="strong" id="welcome-event-name">ao evento</span>
+      </h1>
+      <p class="confirm-sub">Sua inscrição está garantida. Guarde esta mensagem — ela é a sua confirmação.</p>
+    </section>
+
+    <section class="message-section">
+      <div class="message-eyebrow">Sua mensagem de boas-vindas</div>
+      <h2 class="message-title">Compartilhe ou guarde sua confirmação</h2>
+
+      <div class="message-card">
+        <div class="message-body" id="message-body" aria-label="Mensagem de boas-vindas"></div>
+
+        <div class="action-row">
+          <a id="btn-whatsapp" class="btn btn-whatsapp" href="#" target="_blank" rel="noopener">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M19.05 4.91A9.82 9.82 0 0 0 12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.27-1.38a9.9 9.9 0 0 0 4.71 1.2h.01c5.46 0 9.9-4.45 9.9-9.91 0-2.65-1.03-5.13-2.89-7zM12.05 20.15h-.01a8.22 8.22 0 0 1-4.19-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.18 8.18 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.25-8.23 2.2 0 4.27.86 5.82 2.42a8.16 8.16 0 0 1 2.41 5.82c0 4.54-3.7 8.23-8.23 8.23zm4.52-6.16c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.16.25-.64.81-.78.97-.14.16-.29.18-.54.06-.25-.12-1.05-.39-2-1.23-.74-.66-1.24-1.47-1.38-1.72-.14-.25-.02-.39.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.25-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.42-.14-.01-.31-.01-.48-.01a.92.92 0 0 0-.67.31c-.23.25-.87.85-.87 2.08 0 1.22.89 2.4 1.01 2.57.12.17 1.74 2.66 4.22 3.73.59.25 1.05.41 1.41.52.59.19 1.13.16 1.55.1.47-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.06-.11-.22-.17-.46-.29z"/>
+            </svg>
+            Enviar pelo WhatsApp
+          </a>
+          <button type="button" id="btn-copy" class="btn btn-copy">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="9" y="9" width="13" height="13" rx="2"/>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            <span id="btn-copy-text">Copiar mensagem</span>
+          </button>
+        </div>
+
+        <a href="/" class="btn btn-back">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M19 12H5M12 19l-7-7 7-7"/>
+          </svg>
+          Voltar para o início
+        </a>
+
+        <div class="meta-row" id="meta-row"></div>
+      </div>
+    </section>
+  </div>
+
+  <!-- PENDING -->
+  <div id="pending-state" class="hidden">
+    <section class="pending-hero">
+      <div class="pending-icon">⏳</div>
+      <div class="confirm-eyebrow" style="color:#8a6730">Aguardando confirmação</div>
+      <h1 class="confirm-title">
+        <span>Pagamento em</span>
+        <span class="strong">processamento</span>
+      </h1>
+      <p class="confirm-sub">
+        Se você pagou via PIX, a compensação costuma levar de alguns segundos até alguns minutos.
+        Esta página atualiza sozinha — não precisa fazer nada.
+      </p>
+      <div class="meta-row" id="pending-meta" style="margin-top:24px"></div>
+    </section>
+  </div>
+
+  <!-- ERROR / REJECTED -->
+  <div id="error-state" class="hidden">
+    <section class="error-hero">
+      <div class="error-icon">✕</div>
+      <div class="confirm-eyebrow" style="color:var(--rose-deep)">Algo deu errado</div>
+      <h1 class="confirm-title">
+        <span>Pagamento</span>
+        <span class="strong">não concluído</span>
+      </h1>
+      <p class="confirm-sub">
+        Não foi possível concluir o pagamento. Você pode tentar novamente — sua inscrição só é confirmada após a aprovação.
+      </p>
+      <div class="meta-row" id="error-meta" style="margin-top:24px"></div>
+      <a href="/" class="btn btn-back" style="max-width:320px;margin-left:auto;margin-right:auto">
+        Tentar novamente
+      </a>
+    </section>
+  </div>
+
+  <!-- NOT FOUND -->
+  <div id="notfound-state" class="hidden">
+    <div class="state-card">
+      <div class="alert alert-danger">Inscrição não encontrada.</div>
+      <p style="color:var(--muted)">Verifique o link recebido após o pagamento ou entre em contato com a organização.</p>
+      <a href="/" class="btn btn-back" style="max-width:320px;margin:20px auto 0">Voltar para o início</a>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast" class="toast">Mensagem copiada!</div>
+
+<footer class="site-footer">
+  <div class="org">Associação do Movimento Acampamento</div>
+  <div>1º Encontro de Mulheres — Movidas pelo Espírito · © 2026</div>
+</footer>
+
+<script>
+/* ============================================================
+   SUCESSO.HTML — Confirmação + mensagem de boas-vindas
+   ------------------------------------------------------------
+   Fluxo:
+   1) Lê registrationId da URL (?registrationId=...)
+   2) Busca a inscrição no Firestore.
+   3) Se statusPagamento === "pago":
+      - Monta a mensagem de boas-vindas com os dados da inscrição.
+      - Mostra botões: WhatsApp (wa.me), Copiar, Voltar.
+   4) Se "pendente": faz polling até virar "pago" ou erro.
+   5) Se "recusado"/"cancelado": mostra estado de erro.
+
+   ENVIO POR WHATSAPP:
+   - O envio NÃO é automático e NÃO usa API paga.
+   - O botão abre wa.me/<telefone>?text=<mensagem encoded>.
+   - A participante (ou a organização) clica para enviar.
+
+   [TODO: email]  Gancho para e-mail automático no futuro
+   - Hoje a confirmação aparece somente nesta tela.
+   - Para disparar e-mail real quando o webhook confirmar o
+     pagamento (independente de a pessoa abrir esta página),
+     plugue um serviço (ex.: Resend, SendGrid) em
+     api/webhook-mercadopago.js, no bloco onde o status muda
+     para "pago". Use o reg.participantes[*].email já salvo
+     na inscrição.
+   ============================================================ */
+
+(function () {
+  "use strict";
+
+  /* ------- Firebase ------- */
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCrrTLJMWve_8mNptzAiMxz5ejTFE58GXA",
+    authDomain:        "pagamentos-site.firebaseapp.com",
+    projectId:         "pagamentos-site",
+    storageBucket:     "pagamentos-site.firebasestorage.app",
+    messagingSenderId: "350551469871",
+    appId:             "1:350551469871:web:98ef3105c2590f9df23bda",
+    measurementId:     "G-DR9Z41XCZN"
+  };
+  if (typeof firebase !== "undefined" && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = (typeof firebase !== "undefined" && firebase.apps.length)
+    ? firebase.firestore() : null;
+
+  /* ------- helpers ------- */
+  const $ = (id) => document.getElementById(id);
+  const params = new URLSearchParams(location.search);
+  const regId =
+    params.get("registrationId") ||
+    params.get("reg") ||
+    params.get("registration_id") || "";
+
+  const fmtBRL = (n) => "R$ " + Number(n || 0).toFixed(2).replace(".", ",");
+
+  function show(stateId) {
+    ["loading-state","paid-state","pending-state","error-state","notfound-state"]
+      .forEach(id => $(id).classList.toggle("hidden", id !== stateId));
+  }
+
+  function showToast(text) {
+    const t = $("toast");
+    t.textContent = text;
+    t.classList.add("show");
+    clearTimeout(t._tid);
+    t._tid = setTimeout(() => t.classList.remove("show"), 2200);
+  }
+
+  /* Normaliza telefone para wa.me:
+     - remove tudo que não é dígito
+     - remove zeros iniciais
+     - garante DDI 55 (Brasil) */
+  function normalizeWhatsappNumber(phone) {
+    if (!phone) return "";
+    let digits = String(phone).replace(/\D/g, "");
+    if (!digits) return "";
+    digits = digits.replace(/^0+/, "");
+    if (!digits.startsWith("55")) digits = "55" + digits;
+    return digits;
+  }
+
+  function tamanhoLabel(t) {
+    if (!t) return "Não deseja camiseta";
+    const s = String(t).trim();
+    if (!s) return "Não deseja camiseta";
+    if (/n[ãa]o\s*dese/i.test(s)) return "Não deseja camiseta";
+    return s;
+  }
+
+  function buildWelcomeMessage(reg) {
+    const eventoNome = reg.eventNome || "nosso evento";
+    const participantes = Array.isArray(reg.participantes) ? reg.participantes : [];
+    const principal = (participantes[0] && participantes[0].nome && participantes[0].nome.trim()) || "amiga";
+    const qtd = Number(reg.quantidade) || participantes.length || 1;
+    const valor = fmtBRL(reg.valorTotal);
+
+    const listaParticipantes = participantes.length
+      ? participantes
+          .map((p, i) => {
+            const nome = (p.nome && p.nome.trim()) || ("Participante " + (i + 1));
+            const cam = tamanhoLabel(p.tamanhoCamiseta);
+            return (i + 1) + ". " + nome + " - Camiseta: " + cam;
+          })
+          .join("\n")
+      : "—";
+
+    return (
+      "Olá, " + principal + "! Seja bem-vinda ao evento " + eventoNome + ". 🎉\n\n" +
+      "Seu pagamento foi confirmado e sua inscrição está garantida.\n\n" +
+      "📌 Dados da inscrição:\n" +
+      "Evento: " + eventoNome + "\n" +
+      "Status: Pago\n" +
+      "Quantidade de inscrições: " + qtd + "\n" +
+      "Valor pago: " + valor + "\n" +
+      "ID da inscrição: " + regId + "\n\n" +
+      "👥 Participantes:\n" + listaParticipantes + "\n\n" +
+      "Nos vemos no evento! 🙏"
+    );
+  }
+
+  function renderPaid(reg) {
+    show("paid-state");
+
+    const eventoNome = reg.eventNome || "ao nosso evento";
+    $("welcome-event-name").textContent = eventoNome;
+
+    const message = buildWelcomeMessage(reg);
+    $("message-body").textContent = message;
+    $("meta-row").textContent = regId ? ("ID da inscrição: " + regId) : "";
+
+    // Botão WhatsApp — apenas se houver telefone
+    const principal = (Array.isArray(reg.participantes) && reg.participantes[0]) || {};
+    const fone = normalizeWhatsappNumber(principal.telefone);
+    const waBtn = $("btn-whatsapp");
+    const copyBtn = $("btn-copy");
+
+    if (fone) {
+      waBtn.href = "https://wa.me/" + fone + "?text=" + encodeURIComponent(message);
+      waBtn.classList.remove("hidden");
+    } else {
+      waBtn.classList.add("hidden");
+      copyBtn.style.gridColumn = "1 / -1";
+    }
+
+    // Botão Copiar
+    const copyTxt = $("btn-copy-text");
+    copyBtn.onclick = async () => {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(message);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = message;
+          ta.setAttribute("readonly", "");
+          ta.style.position = "absolute";
+          ta.style.left = "-9999px";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+        copyBtn.classList.add("copied");
+        copyTxt.textContent = "Mensagem copiada!";
+        showToast("Mensagem copiada para a área de transferência");
+        setTimeout(() => {
+          copyBtn.classList.remove("copied");
+          copyTxt.textContent = "Copiar mensagem";
+        }, 2400);
+      } catch (err) {
+        console.error(err);
+        showToast("Não foi possível copiar. Selecione e copie manualmente.");
+      }
+    };
+  }
+
+  function renderPending() {
+    show("pending-state");
+    $("pending-meta").textContent = regId ? ("ID da inscrição: " + regId) : "";
+  }
+
+  function renderError() {
+    show("error-state");
+    $("error-meta").textContent = regId ? ("ID da inscrição: " + regId) : "";
+  }
+
+  function renderNotFound() {
+    show("notfound-state");
+  }
+
+  /* ------- Loop principal: polling enquanto pendente ------- */
+  if (!db || !regId) {
+    renderNotFound();
+    return;
+  }
+
+  let tries = 0;
+  const maxTries = 60;       // ~3 minutos
+  const intervalMs = 3000;   // 3s entre tentativas
+
+  async function check() {
+    tries++;
+    try {
+      const snap = await db.collection("registrations").doc(regId).get();
+      if (!snap.exists) {
+        renderNotFound();
+        return;
+      }
+      const reg = snap.data() || {};
+      const st = String(reg.statusPagamento || "").toLowerCase();
+
+      if (st === "pago") {
+        renderPaid(reg);
+        return;
+      }
+      if (st === "recusado" || st === "cancelado") {
+        renderError();
+        return;
+      }
+      renderPending();
+      if (tries < maxTries) setTimeout(check, intervalMs);
+    } catch (err) {
+      console.error("Erro ao buscar inscrição:", err);
+      if (tries < maxTries) {
+        setTimeout(check, intervalMs);
+      } else {
+        renderNotFound();
+      }
+    }
+  }
+
+  check();
+})();
+</script>
+</body>
+</html>
