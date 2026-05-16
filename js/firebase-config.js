@@ -12,14 +12,24 @@
    ============================================================ */
 
 const firebaseConfig = {
-  apiKey: "COLE_AQUI",
-  authDomain: "COLE_AQUI",
-  projectId: "COLE_AQUI",
-  storageBucket: "COLE_AQUI",
-  messagingSenderId: "COLE_AQUI",
-  appId: "COLE_AQUI",
-  measurementId: "COLE_AQUI"
+  apiKey: "AIzaSyCrrTLJMWve_8mNptzAiMxz5ejTFE58GXA",
+  authDomain: "pagamentos-site.firebaseapp.com",
+  projectId: "pagamentos-site",
+  storageBucket: "pagamentos-site.firebasestorage.app",
+  messagingSenderId: "350551469871",
+  appId: "1:350551469871:web:98ef3105c2590f9df23bda",
+  measurementId: "G-DR9Z41XCZN"
 };
+
+/* ============================================================
+   MERCADO PAGO — PUBLIC KEY (produção)
+   ------------------------------------------------------------
+   Pública por design. Só é usada se você for embutir o
+   Brick / Checkout Bricks no frontend. Para Checkout Pro
+   (redirect ao init_point) NÃO é necessária — mas deixamos
+   aqui para uso futuro.
+   ============================================================ */
+const MERCADO_PAGO_PUBLIC_KEY = "APP_USR-cdcc85cf-78f3-475e-a39d-d301180c4c12";
 
 /* ============================================================
    URL DA API (Vercel Functions)
@@ -36,7 +46,7 @@ const firebaseConfig = {
    estiverem no mesmo domínio).
    ============================================================ */
 
-const API_BASE_URL = "COLE_AQUI_URL_DA_API";
+const API_BASE_URL = "https://pagamentos-site.vercel.app";
 
 /* ============================================================
    INICIALIZAÇÃO DO FIREBASE (compat SDK — funciona sem build)
@@ -57,5 +67,6 @@ const db = (typeof firebase !== "undefined") ? firebase.firestore() : null;
 window.__FB = {
   db,
   apiBaseUrl: API_BASE_URL || "",
-  firebaseConfig
+  firebaseConfig,
+  mercadoPagoPublicKey: typeof MERCADO_PAGO_PUBLIC_KEY !== "undefined" ? MERCADO_PAGO_PUBLIC_KEY : ""
 };

@@ -173,8 +173,11 @@ module.exports = async function handler(req, res) {
         }
       }
 
-      // Se voltou de PAGO para algo (estorno/chargeback), decrementa
-      if (statusAnterior === "pago" && novoStatus !== "pago") {
+      // Se houve ESTORNO REAL (refunded / chargeback / cancelled após pago),
+      // decrementa. Notificações atrasadas de "pending"/"rejected" DEPOIS de
+      // pago são ignoradas (uma vez aprovado, só refund/chargeback reverte).
+      const isEstornoReal = statusAnterior === "pago" && novoStatus === "cancelado";
+      if (isEstornoReal) {
         const eventId = reg.eventId || eventoIdFromPayment;
         if (eventId) {
           const evRef = db.collection("events").doc(eventId);
@@ -190,10 +193,19 @@ module.exports = async function handler(req, res) {
           }
         }
       }
+
+      // Se já estava PAGO e chegou notificação não-estorno (pending/rejected
+      // fora de ordem), preserva o status PAGO no registration.
+      if (statusAnterior === "pago" && novoStatus !== "pago" && !isEstornoReal) {
+        tx.update(regRef, { statusPagamento: "pago" });
+      }
     });
 
     // -------- Log em /payments --------
-    await db.collection("payments").add({
+    // Doc ID determinístico: re-deliveries do MESMO estado não duplicam log.
+    // Mudanças de estado (pending → approved) geram docs distintos.
+    const logDocId = `${paymentId}_${mpStatus || "unknown"}`;
+    await db.collection("payments").doc(logDocId).set({
       registrationId,
       paymentId: String(paymentId),
       mpStatus,
@@ -205,7 +217,7 @@ module.exports = async function handler(req, res) {
       payerEmail: (payment.payer && payment.payer.email) || "",
       receivedAt: admin.firestore.FieldValue.serverTimestamp(),
       rawPaymentDateApproved: payment.date_approved || null
-    });
+    }, { merge: true });
 
     res.status(200).json({ ok: true, status: novoStatus });
   } catch (err) {

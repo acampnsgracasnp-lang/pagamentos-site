@@ -22,8 +22,19 @@
         Você pode tentar novamente sem problema — sua inscrição só será
         confirmada após o pagamento ser aprovado.
       </p>
+      <div id="status-meta" class="text-muted text-sm mb-3" style="font-family:ui-monospace,Menlo,monospace"></div>
       <a href="index.html" class="btn btn-primary btn-block">Tentar novamente</a>
     </div>
   </div>
+
+  <script>
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const regId = params.get("registrationId") || params.get("reg") || "";
+      if (regId) {
+        document.getElementById("status-meta").textContent = "ID da inscrição: " + regId;
+      }
+    })();
+  </script>
 </body>
 </html>

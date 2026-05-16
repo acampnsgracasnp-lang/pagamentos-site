@@ -127,14 +127,15 @@ module.exports = async function handler(req, res) {
       quantidade: qtd
     },
     back_urls: {
-      success: `${PUBLIC_SITE_URL}/sucesso.html?reg=${encodeURIComponent(registrationId)}`,
-      pending: `${PUBLIC_SITE_URL}/pendente.html?reg=${encodeURIComponent(registrationId)}`,
-      failure: `${PUBLIC_SITE_URL}/erro.html?reg=${encodeURIComponent(registrationId)}`
+      success: `${PUBLIC_SITE_URL}/sucesso.html?registrationId=${encodeURIComponent(registrationId)}`,
+      pending: `${PUBLIC_SITE_URL}/pendente.html?registrationId=${encodeURIComponent(registrationId)}`,
+      failure: `${PUBLIC_SITE_URL}/erro.html?registrationId=${encodeURIComponent(registrationId)}`
     },
     auto_return: "approved",
     statement_descriptor: "EVENTO",
     payment_methods: {
-      // Permite PIX, cartão de crédito e débito
+      // Checkout Pro: PIX + crédito + débito.
+      // Bloqueia boleto/caixa (sem confirmação automática útil aqui).
       excluded_payment_types: [{ id: "atm" }, { id: "ticket" }],
       installments: 12
     }
