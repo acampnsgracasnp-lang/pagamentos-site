@@ -165,12 +165,18 @@ module.exports = async function handler(req, res) {
     preferenceBody.notification_url = notificationUrl;
   }
 
-  if (payer && (payer.name || payer.phone)) {
+  if (payer && (payer.name || payer.phone || payer.email)) {
     preferenceBody.payer = {};
     if (payer.name) {
       const parts = String(payer.name).trim().split(/\s+/);
       preferenceBody.payer.name = parts.shift();
       if (parts.length) preferenceBody.payer.surname = parts.join(" ");
+    }
+    if (payer.email) {
+      const email = String(payer.email).trim();
+      if (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        preferenceBody.payer.email = email;
+      }
     }
     if (payer.phone) {
       const digits = String(payer.phone).replace(/\D/g, "");
