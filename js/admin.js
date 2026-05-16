@@ -69,6 +69,23 @@
       .replace(/-+/g, "-");
   }
 
+  // Helpers de camiseta — fonte única da verdade
+  function parseTamanhos(raw) {
+    const arr = String(raw || "")
+      .split(",")
+      .map(s => s.trim().toUpperCase())
+      .filter(Boolean);
+    // remove duplicados preservando ordem
+    return Array.from(new Set(arr));
+  }
+  function isNoShirtLabel(s) {
+    return /n[ãa]o\s*dese/i.test(String(s || ""));
+  }
+  function temCamiseta(tamanho) {
+    if (!tamanho) return false;
+    return !isNoShirtLabel(tamanho);
+  }
+
   function escapeHTML(s) {
     return (s == null ? "" : String(s))
       .replace(/&/g, "&amp;")
@@ -187,6 +204,41 @@
             ? '<span class="badge badge-danger">Esgotado</span>'
             : '<span class="badge badge-success">Ativo</span>';
 
+        // Breakdown de camisetas (mostra apenas se houver estoque configurado)
+        const estoque = ev.estoqueCamisetas || {};
+        const vendidoCam = ev.vendidoCamisetas || {};
+        const tamanhosOrdem = (ev.tamanhosCamiseta || []).filter(t => !isNoShirtLabel(t));
+        const tamanhosComEstoque = tamanhosOrdem.filter(t => Number(estoque[t]) > 0);
+        let shirtsHtml = "";
+        if (ev.exigeCamiseta && tamanhosComEstoque.length) {
+          shirtsHtml = `
+            <div style="margin-top:6px">
+              <div class="ms-label" style="margin-bottom:4px">Estoque de camisetas</div>
+              <div class="shirts-breakdown">
+                ${tamanhosComEstoque.map(t => {
+                  const total = Number(estoque[t]) || 0;
+                  const vend = Number(vendidoCam[t]) || 0;
+                  const rest = Math.max(0, total - vend);
+                  const cls = rest <= 0 ? "chip sold-out" : "chip";
+                  return `<span class="${cls}" title="${vend} vendidas de ${total}">${escapeHTML(t)} · <strong>${rest}</strong>/${total}</span>`;
+                }).join("")}
+              </div>
+            </div>
+          `;
+        } else if (ev.exigeCamiseta && tamanhosOrdem.length) {
+          shirtsHtml = `
+            <div style="margin-top:6px">
+              <div class="ms-label" style="margin-bottom:4px">Camisetas vendidas</div>
+              <div class="shirts-breakdown">
+                ${tamanhosOrdem.map(t => {
+                  const vend = Number(vendidoCam[t]) || 0;
+                  return `<span class="chip" title="Sem limite definido">${escapeHTML(t)} · <strong>${vend}</strong></span>`;
+                }).join("")}
+              </div>
+            </div>
+          `;
+        }
+
         const card = document.createElement("div");
         card.className = "event-card";
         card.innerHTML = `
@@ -201,7 +253,7 @@
           <div class="meta-line">
             <span>${ICONS.calendar}${ev.dataEvento ? escapeHTML(formatDate(ev.dataEvento)) : "Sem data"}</span>
             <span>${ICONS.pin}${ev.local ? escapeHTML(ev.local) : "Local não definido"}</span>
-            <span>${ICONS.tag}${formatBRL(ev.valor)}</span>
+            <span>${ICONS.tag}${formatBRL(ev.valor)}${Number(ev.precoCamiseta) > 0 ? ` <small style="opacity:.7">+ ${formatBRL(ev.precoCamiseta)} cam.</small>` : ""}</span>
           </div>
 
           <div>
@@ -228,6 +280,8 @@
               <div class="ms-value">${restantes}</div>
             </div>
           </div>
+
+          ${shirtsHtml}
 
           <div class="card-actions">
             <button class="btn btn-primary btn-sm" data-edit="${ev.id}">${ICONS.edit}<span>Editar</span></button>
@@ -322,18 +376,29 @@
       let totalInscricoes = 0;
       let totalParticipantes = 0;
       let receita = 0;
+      let receitaPendente = 0;
+      let inscricoesPagas = 0;
       snap.docs.forEach(d => {
         const r = d.data();
         totalInscricoes++;
         totalParticipantes += Number(r.quantidade) || 1;
         if (r.statusPagamento === "pago") {
+          inscricoesPagas++;
           receita += Number(r.valorTotal) || 0;
+        } else if (r.statusPagamento === "pendente") {
+          receitaPendente += Number(r.valorTotal) || 0;
         }
       });
       $("#admin-stat-inscritos").textContent = totalParticipantes;
       $("#admin-stat-inscritos-hint").textContent =
-        `${totalInscricoes} inscrição${totalInscricoes === 1 ? "" : "s"} no total`;
+        `${inscricoesPagas} paga(s) · ${totalInscricoes} inscrição${totalInscricoes === 1 ? "" : "s"} no total`;
       $("#admin-stat-receita").textContent = formatBRL(receita);
+      const hintEl = document.getElementById("admin-stat-receita-hint");
+      if (hintEl) {
+        hintEl.textContent = receitaPendente > 0
+          ? `+ ${formatBRL(receitaPendente)} aguardando pagamento`
+          : "Somente pagamentos aprovados";
+      }
     } catch (err) {
       console.warn("Falha ao agregar registrations:", err);
       $("#admin-stat-inscritos").textContent = "—";
@@ -376,6 +441,10 @@
       $("#slug-preview").textContent = e.target.value || "slug";
     });
 
+    // Mostra/oculta bloco de estoque por tamanho conforme exigeCamiseta + lista de tamanhos
+    $("#ev-tamanhos").addEventListener("input", renderEstoqueGrid);
+    $("#ev-exige-camiseta").addEventListener("change", renderEstoqueGrid);
+
     $$("[data-close]").forEach(b => {
       b.addEventListener("click", () => {
         document.getElementById(b.getAttribute("data-close")).classList.remove("show");
@@ -392,12 +461,56 @@
     $("#event-form").addEventListener("submit", saveEvent);
   }
 
+  // Renderiza grid de estoque por tamanho dentro do modal.
+  // Usa o input atual de tamanhos + dataset.estoque/dataset.vendido para preservar valores.
+  function renderEstoqueGrid() {
+    const wrap = $("#ev-estoque-wrap");
+    const grid = $("#ev-estoque-grid");
+    if (!wrap || !grid) return;
+
+    const exige = $("#ev-exige-camiseta").value === "true";
+    wrap.style.display = exige ? "" : "none";
+    if (!exige) { grid.innerHTML = ""; return; }
+
+    const tamanhos = parseTamanhos($("#ev-tamanhos").value)
+      .filter(t => !isNoShirtLabel(t)); // estoque só faz sentido para tamanhos reais
+
+    // valores já digitados, para preservar
+    const atuais = {};
+    grid.querySelectorAll("input[data-size]").forEach(i => {
+      atuais[i.getAttribute("data-size")] = i.value;
+    });
+
+    // valores carregados do Firestore (vindos do openEditModal)
+    let estoqueLoaded = {};
+    let vendidoLoaded = {};
+    try { estoqueLoaded = JSON.parse(grid.dataset.estoque || "{}"); } catch {}
+    try { vendidoLoaded = JSON.parse(grid.dataset.vendido || "{}"); } catch {}
+
+    grid.innerHTML = tamanhos.map(sz => {
+      const v = atuais[sz] != null && atuais[sz] !== ""
+        ? atuais[sz]
+        : (estoqueLoaded[sz] != null ? estoqueLoaded[sz] : "");
+      const vendido = Number(vendidoLoaded[sz]) || 0;
+      return `
+        <div class="estoque-row">
+          <span class="size-label">${escapeHTML(sz)}</span>
+          <input type="number" min="0" step="1" data-size="${escapeHTML(sz)}" value="${escapeHTML(String(v))}" placeholder="0">
+          <span class="sold" title="Vendidos até agora">${vendido} v.</span>
+        </div>
+      `;
+    }).join("");
+  }
+
   function openEditModal(id) {
     const form = $("#event-form");
     form.reset();
     $("#event-id").value = "";
     $("#ev-slug").dataset.auto = "1";
     $("#slug-preview").textContent = "slug";
+
+    const grid = $("#ev-estoque-grid");
+    if (grid) { grid.dataset.estoque = "{}"; grid.dataset.vendido = "{}"; grid.innerHTML = ""; }
 
     if (id) {
       const ev = currentEvents.find(e => e.id === id);
@@ -410,6 +523,7 @@
       $("#slug-preview").textContent = ev.slug || "slug";
       $("#ev-descricao").value = ev.descricao || "";
       $("#ev-valor").value = ev.valor != null ? ev.valor : "";
+      $("#ev-preco-camiseta").value = ev.precoCamiseta != null ? ev.precoCamiseta : 0;
       $("#ev-limite").value = ev.limiteIngressos != null ? ev.limiteIngressos : "";
       $("#ev-vendidos").value = ev.ingressosVendidos != null ? ev.ingressosVendidos : 0;
       $("#ev-data").value = ev.dataEvento || "";
@@ -417,15 +531,21 @@
       $("#ev-banner").value = ev.bannerUrl || "";
       $("#ev-ativo").value = String(!!ev.ativo);
       $("#ev-exige-camiseta").value = String(!!ev.exigeCamiseta);
-      $("#ev-tamanhos").value = (ev.tamanhosCamiseta || ["PP","P","M","G","GG","XG"]).join(", ");
+      $("#ev-tamanhos").value = (ev.tamanhosCamiseta || ["P","M","G","GG","XG","XXG"]).join(", ");
+      if (grid) {
+        grid.dataset.estoque = JSON.stringify(ev.estoqueCamisetas || {});
+        grid.dataset.vendido = JSON.stringify(ev.vendidoCamisetas || {});
+      }
     } else {
       $("#event-modal-title").textContent = "Novo evento";
+      $("#ev-preco-camiseta").value = 0;
       $("#ev-vendidos").value = 0;
       $("#ev-ativo").value = "true";
       $("#ev-exige-camiseta").value = "true";
-      $("#ev-tamanhos").value = "PP, P, M, G, GG, XG";
+      $("#ev-tamanhos").value = "P, M, G, GG, XG, XXG";
     }
 
+    renderEstoqueGrid();
     $("#event-modal").classList.add("show");
   }
 
@@ -450,24 +570,45 @@
       console.warn("Não foi possível verificar duplicidade:", err);
     }
 
-    const tamanhos = $("#ev-tamanhos").value
-      .split(",")
-      .map(s => s.trim().toUpperCase())
-      .filter(Boolean);
+    const tamanhos = parseTamanhos($("#ev-tamanhos").value);
+    const exigeCamiseta = $("#ev-exige-camiseta").value === "true";
+
+    // Coleta estoque por tamanho (apenas tamanhos "reais", ignora "Não desejo camiseta")
+    const estoqueCamisetas = {};
+    if (exigeCamiseta) {
+      $$("#ev-estoque-grid input[data-size]").forEach(inp => {
+        const sz = inp.getAttribute("data-size");
+        const v = Number(inp.value);
+        if (sz && Number.isFinite(v) && v > 0) estoqueCamisetas[sz] = Math.floor(v);
+      });
+    }
+
+    // Preserva contador vendidoCamisetas existente (atualizado pelo webhook).
+    // Aqui apenas garantimos que o objeto existe e remove tamanhos descontinuados.
+    let vendidoCamisetas = {};
+    const grid = $("#ev-estoque-grid");
+    try { vendidoCamisetas = JSON.parse(grid?.dataset.vendido || "{}"); } catch {}
+    const vendidoLimpo = {};
+    tamanhos.filter(t => !isNoShirtLabel(t)).forEach(t => {
+      vendidoLimpo[t] = Number(vendidoCamisetas[t]) || 0;
+    });
 
     const data = {
       nome: $("#ev-nome").value.trim(),
       slug: slug,
       descricao: $("#ev-descricao").value.trim(),
       valor: Number($("#ev-valor").value) || 0,
+      precoCamiseta: Number($("#ev-preco-camiseta").value) || 0,
       limiteIngressos: Number($("#ev-limite").value) || 0,
       ingressosVendidos: Number($("#ev-vendidos").value) || 0,
       ativo: $("#ev-ativo").value === "true",
       dataEvento: $("#ev-data").value || "",
       local: $("#ev-local").value.trim(),
       bannerUrl: $("#ev-banner").value.trim(),
-      exigeCamiseta: $("#ev-exige-camiseta").value === "true",
-      tamanhosCamiseta: tamanhos.length ? tamanhos : ["PP","P","M","G","GG","XG"],
+      exigeCamiseta: exigeCamiseta,
+      tamanhosCamiseta: tamanhos.length ? tamanhos : ["P","M","G","GG","XG","XXG"],
+      estoqueCamisetas: estoqueCamisetas,
+      vendidoCamisetas: vendidoLimpo,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
 
@@ -558,6 +699,7 @@
     if (emptyEl) emptyEl.classList.add("hidden");
 
     let totalArrecadado = 0;
+    let pendentesValor = 0;
     let pagos = 0, pendentes = 0;
     currentRegs.forEach(r => {
       if (r.statusPagamento === "pago") {
@@ -565,6 +707,7 @@
         totalArrecadado += Number(r.valorTotal) || 0;
       } else if (r.statusPagamento === "pendente") {
         pendentes++;
+        pendentesValor += Number(r.valorTotal) || 0;
       }
     });
 
@@ -580,7 +723,7 @@
       tr.innerHTML = `
         <td>${formatTimestamp(r.createdAt)}</td>
         <td>${escapeHTML(r.eventNome || r.eventSlug || "—")}</td>
-        <td>${escapeHTML(principal.nome || "—")}</td>
+        <td>${escapeHTML(principal.nome || "—")}<br><small style="color:var(--ink-500)">${escapeHTML(principal.email || "")}</small></td>
         <td>${escapeHTML(principal.telefone || "—")}</td>
         <td>${r.quantidade || 1}</td>
         <td>${formatBRL(r.valorTotal)}</td>
@@ -602,26 +745,37 @@
     if (!r) return;
     const body = $("#reg-modal-body");
 
-    const participantesHtml = (r.participantes || []).map((p, i) => `
+    const participantesHtml = (r.participantes || []).map((p, i) => {
+      const camLabel = !p.tamanhoCamiseta
+        ? "—"
+        : isNoShirtLabel(p.tamanhoCamiseta)
+          ? "Não desejou camiseta"
+          : `Sim — tamanho ${escapeHTML(p.tamanhoCamiseta)}`;
+      return `
       <div class="participant-block" style="margin-bottom:12px">
         <div class="participant-header">
           <div class="participant-number">${i + 1}</div>
           <div class="participant-title">${escapeHTML(p.nome || "Participante " + (i+1))}</div>
         </div>
         <div style="font-size:14px;line-height:1.7">
+          <div><b>E-mail:</b> ${escapeHTML(p.email || "—")}</div>
           <div><b>Telefone:</b> ${escapeHTML(p.telefone || "—")}</div>
           <div><b>Cidade:</b> ${escapeHTML(p.cidade || "—")}</div>
           <div><b>Comunidade:</b> ${escapeHTML(p.comunidade || "—")}</div>
           <div><b>Pastoral:</b> ${escapeHTML(p.pastoral || "—")}</div>
           <div><b>Endereço:</b> ${escapeHTML(p.endereco || "—")}</div>
-          <div><b>Camiseta:</b> ${
-            p.desejaCamiseta
-              ? "Sim — tamanho " + escapeHTML(p.tamanhoCamiseta || "?")
-              : (p.desejaCamiseta === false ? "Não" : "—")
-          }</div>
+          <div><b>Camiseta:</b> ${camLabel}</div>
         </div>
       </div>
-    `).join("");
+    `;}).join("");
+
+    const comCam = Number(r.comCamiseta) || (r.participantes || []).filter(p => temCamiseta(p.tamanhoCamiseta)).length;
+    const semCam = (Number(r.quantidade) || (r.participantes || []).length) - comCam;
+    const valorUnit = Number(r.valorUnitario) || 0;
+    const precoCam = Number(r.precoCamiseta) || 0;
+    const breakdownTxt = [];
+    if (semCam > 0 && valorUnit > 0) breakdownTxt.push(`${semCam} × ${formatBRL(valorUnit)} (sem camiseta)`);
+    if (comCam > 0 && (valorUnit + precoCam) > 0) breakdownTxt.push(`${comCam} × ${formatBRL(valorUnit + precoCam)} (com camiseta)`);
 
     body.innerHTML = `
       <div class="card-section">
@@ -629,9 +783,9 @@
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:14px;line-height:1.7">
           <div><b>Evento:</b><br>${escapeHTML(r.eventNome || r.eventSlug || r.eventId)}</div>
           <div><b>Status:</b><br>${badgeStatus(r.statusPagamento)}</div>
-          <div><b>Valor total:</b><br>${formatBRL(r.valorTotal)}</div>
+          <div><b>Valor total:</b><br>${formatBRL(r.valorTotal)}<br><small style="color:var(--ink-500)">${escapeHTML(breakdownTxt.join("  +  ") || "—")}</small></div>
           <div><b>Criado em:</b><br>${formatTimestamp(r.createdAt)}</div>
-          <div style="grid-column:1/-1;font-size:12px;color:var(--text-muted);word-break:break-all;border-top:1px dashed var(--border);padding-top:10px;margin-top:4px">
+          <div style="grid-column:1/-1;font-size:12px;color:var(--ink-500);word-break:break-all;border-top:1px dashed var(--border);padding-top:10px;margin-top:4px">
             <div><b>Preference ID:</b> ${escapeHTML(r.mercadoPagoPreferenceId || "—")}</div>
             <div><b>Payment ID:</b> ${escapeHTML(r.mercadoPagoPaymentId || "—")}</div>
             <div><b>Registration ID:</b> <code>${r.id}</code></div>
@@ -655,7 +809,7 @@
 
     const rows = [[
       "Data", "Evento", "Status", "Valor Total", "Qtd",
-      "Nome", "Telefone", "Cidade", "Comunidade", "Pastoral",
+      "Nome", "E-mail", "Telefone", "Cidade", "Comunidade", "Pastoral",
       "Endereço", "Camiseta", "Tamanho",
       "PreferenceId", "PaymentId", "RegistrationId"
     ]];
@@ -664,6 +818,8 @@
       const evNome = r.eventNome || r.eventSlug || "";
       const created = formatTimestamp(r.createdAt);
       (r.participantes || [{}]).forEach((p, idx) => {
+        const camTxt = !p.tamanhoCamiseta ? "" : (isNoShirtLabel(p.tamanhoCamiseta) ? "Não" : "Sim");
+        const tamTxt = !p.tamanhoCamiseta || isNoShirtLabel(p.tamanhoCamiseta) ? "" : p.tamanhoCamiseta;
         rows.push([
           idx === 0 ? created : "",
           idx === 0 ? evNome : "",
@@ -671,13 +827,14 @@
           idx === 0 ? String(r.valorTotal ?? "") : "",
           idx === 0 ? String(r.quantidade ?? "") : "",
           p.nome || "",
+          p.email || "",
           p.telefone || "",
           p.cidade || "",
           p.comunidade || "",
           p.pastoral || "",
           p.endereco || "",
-          p.desejaCamiseta ? "Sim" : (p.desejaCamiseta === false ? "Não" : ""),
-          p.tamanhoCamiseta || "",
+          camTxt,
+          tamTxt,
           idx === 0 ? (r.mercadoPagoPreferenceId || "") : "",
           idx === 0 ? (r.mercadoPagoPaymentId || "") : "",
           idx === 0 ? r.id : ""

@@ -927,6 +927,73 @@ code {
 }
 
 /* ============================================================
+   ESTOQUE POR TAMANHO — admin
+   ============================================================ */
+.estoque-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 10px;
+}
+.estoque-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 8px 10px;
+}
+.estoque-row .size-label {
+  flex: 1;
+  font-weight: 700;
+  font-size: 0.92rem;
+  color: var(--ink-900);
+  font-variant-numeric: tabular-nums;
+}
+.estoque-row input[type="number"] {
+  width: 70px;
+  padding: 6px 8px;
+  font-size: 0.88rem;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink-900);
+  text-align: right;
+}
+.estoque-row .sold {
+  font-size: 0.74rem;
+  color: var(--ink-500);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Lista de camisetas vendidas no card do evento */
+.shirts-breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.shirts-breakdown .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--ink-700, var(--ink-900));
+  font-variant-numeric: tabular-nums;
+}
+.shirts-breakdown .chip.sold-out {
+  background: #fde7e7;
+  border-color: #f3b0b0;
+  color: #8a1f1f;
+}
+.shirts-breakdown .chip strong { color: var(--brand); }
+
+/* ============================================================
    FILTER BAR
    ============================================================ */
 

@@ -801,6 +801,31 @@
     letter-spacing: 0;
     grid-column: span 2;
   }
+  .size-option.size-out label{
+    background: #f4ecec;
+    color: #8a6772;
+    border-style: dashed;
+    cursor: not-allowed;
+    position: relative;
+  }
+  .size-option.size-out label:hover{
+    background: #f4ecec;
+    border-color: var(--line);
+  }
+  .size-option .size-rest{
+    display: block;
+    margin-top: 2px;
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .75;
+  }
+  .size-option.size-out .size-rest{
+    color: #b8456e;
+    opacity: 1;
+  }
 
   /* TOTAL */
   .total-box{
@@ -1344,26 +1369,46 @@
        - Inscrição sem camiseta:  R$ 120
        - Inscrição com camiseta:  R$ 170  (R$ 120 + R$ 50 da camiseta)
      ----------------------------------------------------- */
+  /* eventData usa os MESMOS nomes de campo gravados pelo admin
+     (events.dataEvento, events.tamanhosCamiseta, events.precoCamiseta,
+      events.estoqueCamisetas, events.vendidoCamisetas). */
   let eventData = {
+    id: null,
     slug: DEFAULT_SLUG,
     nome: "1º Encontro de Mulheres — Movidas pelo Espírito",
-    valor: 120,                 // valor da inscrição (sem camiseta)
-    precoCamiseta: 50,          // adicional cobrado se a participante escolher tamanho
+    valor: 120,                                // valor base (sem camiseta)
+    precoCamiseta: 50,                         // adicional cobrado se escolher tamanho
     limiteIngressos: 250,
     ingressosVendidos: 0,
     exigeCamiseta: true,
-    tamanhos: ["P","M","G","GG","XG","XXG","Não desejo camiseta"],
-    data: "",
+    tamanhosCamiseta: ["P","M","G","GG","XG","XXG"],
+    estoqueCamisetas: {},                      // ex.: { P: 100, M: 50 }  (0/ausente = ilimitado)
+    vendidoCamisetas: {},                      // ex.: { P: 5, M: 3 }
+    ativo: true,
+    dataEvento: "",
     local: "",
     descricao: "",
     bannerUrl: ""
   };
   let qty = 1;
 
+  const NO_SHIRT_LABEL = "Não desejo camiseta";
+
   // helper: dado um valor de "tamanho" salvo no form, decide se cobra a camiseta
   function temCamiseta(tamanho) {
     if (!tamanho) return false;
     return !/n[ãa]o\s*dese/i.test(String(tamanho));
+  }
+
+  // estoque restante de um tamanho. retorna Infinity se ilimitado / sem estoque configurado
+  function restanteTamanho(sz) {
+    const total = Number(eventData.estoqueCamisetas?.[sz]) || 0;
+    if (total <= 0) return Infinity; // sem limite definido => ilimitado
+    const vend = Number(eventData.vendidoCamisetas?.[sz]) || 0;
+    return Math.max(0, total - vend);
+  }
+  function tamanhoEsgotado(sz) {
+    return restanteTamanho(sz) <= 0;
   }
 
   /* =========================================================
@@ -1393,19 +1438,43 @@
     $("loading-state").classList.add("hidden");
     $("event-state").classList.remove("hidden");
 
-    if (eventData.data)      $("event-date").innerHTML       = eventData.data;
-    if (eventData.local)     $("event-location").innerHTML   = eventData.local;
+    // Data do evento — admin grava em dataEvento (yyyy-mm-dd ou ISO)
+    if (eventData.dataEvento) {
+      try {
+        const raw = String(eventData.dataEvento);
+        const d = new Date(raw.includes("T") ? raw : raw + "T12:00:00");
+        $("event-date").innerHTML = isNaN(d.getTime())
+          ? raw
+          : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+      } catch { $("event-date").innerHTML = eventData.dataEvento; }
+    }
+    if (eventData.local) $("event-location").innerHTML = eventData.local;
+
     if (eventData.valor) {
       const base = fmtBRLSplit(eventData.valor);
-      const comCam = fmtBRLSplit(eventData.valor + (eventData.precoCamiseta || 0));
-      $("event-price").innerHTML = `${base.reais}<small>sem camiseta · ${comCam.reais} com camiseta</small>`;
+      const precoCam = Number(eventData.precoCamiseta) || 0;
+      if (precoCam > 0) {
+        const comCam = fmtBRLSplit(eventData.valor + precoCam);
+        $("event-price").innerHTML = `${base.reais}<small>sem camiseta · ${comCam.reais} com camiseta</small>`;
+      } else {
+        $("event-price").innerHTML = `${base.reais}<small>por participante</small>`;
+      }
     }
     const restante = Math.max(0, (eventData.limiteIngressos||0) - (eventData.ingressosVendidos||0));
     if (eventData.limiteIngressos) {
       $("event-remaining").innerHTML = `${restante}<small>de ${eventData.limiteIngressos}</small>`;
     }
 
-    // bloqueio se esgotado
+    // bloqueio: evento pausado pelo admin
+    if (eventData.ativo === false) {
+      const b = $("event-blocked");
+      b.textContent = "As inscrições para este evento estão pausadas no momento.";
+      b.classList.remove("hidden");
+      $("registration-form").classList.add("hidden");
+      return;
+    }
+
+    // bloqueio: vagas totais esgotadas
     if (eventData.limiteIngressos && restante <= 0) {
       const b = $("event-blocked");
       b.textContent = "As inscrições para este evento estão encerradas — o limite de vagas foi atingido.";
@@ -1421,13 +1490,24 @@
      PARTICIPANTES
      ========================================================= */
   function participantTemplate(idx){
-    const sizes = eventData.tamanhos || ["P","M","G","GG","XG","XXG","Não desejo camiseta"];
+    // Lista canônica: tamanhos reais (do admin) + opção "Não desejo camiseta"
+    const realSizes = (eventData.tamanhosCamiseta || ["P","M","G","GG","XG","XXG"])
+      .filter(s => !/n[ãa]o\s*dese/i.test(s));
+    const sizes = [...realSizes, NO_SHIRT_LABEL];
+
     const sizeOptionsHTML = sizes.map((sz, i) => {
       const isNoShirt = /n[ãa]o\s*dese/i.test(sz);
+      const esgotado = !isNoShirt && tamanhoEsgotado(sz);
+      const rest = isNoShirt ? Infinity : restanteTamanho(sz);
+      const restLabel = (!isNoShirt && Number.isFinite(rest))
+        ? (esgotado ? "ESGOTADO" : `${rest} restantes`)
+        : "";
       return `
-        <div class="size-option ${isNoShirt ? "no-shirt" : ""}">
-          <input type="radio" name="size-${idx}" id="size-${idx}-${i}" value="${sz}" ${i === 0 ? "required" : ""}>
-          <label for="size-${idx}-${i}">${sz}</label>
+        <div class="size-option ${isNoShirt ? "no-shirt" : ""} ${esgotado ? "size-out" : ""}">
+          <input type="radio" name="size-${idx}" id="size-${idx}-${i}" value="${sz}" ${i === 0 ? "required" : ""} ${esgotado ? "disabled" : ""}>
+          <label for="size-${idx}-${i}" title="${restLabel}">
+            ${sz}${restLabel ? `<span class="size-rest">${restLabel}</span>` : ""}
+          </label>
         </div>
       `;
     }).join("");
@@ -1623,18 +1703,57 @@
     btnTxt.textContent = "Processando…";
 
     try {
+      if (!db || !eventData.id) {
+        alert("Evento não encontrado no Firestore. Crie o evento pelo painel /admin antes de aceitar inscrições.");
+        return;
+      }
+
+      // 1) Recarrega o evento para checar estoque/vagas em tempo real (anti-overselling)
+      const freshSnap = await db.collection("events").doc(eventData.id).get();
+      if (!freshSnap.exists) {
+        alert("Evento não encontrado.");
+        return;
+      }
+      eventData = { ...eventData, ...freshSnap.data(), id: freshSnap.id };
+
+      if (eventData.ativo === false) {
+        alert("As inscrições para este evento foram pausadas.");
+        renderEvent();
+        return;
+      }
+
+      const limite = Number(eventData.limiteIngressos) || 0;
+      const vendidos = Number(eventData.ingressosVendidos) || 0;
+      const restantes = Math.max(0, limite - vendidos);
+      if (limite > 0 && qty > restantes) {
+        alert(`Só restam ${restantes} vaga(s) no evento. Reduza a quantidade.`);
+        renderEvent();
+        return;
+      }
+
+      // Conta a demanda por tamanho nesta inscrição e compara com o estoque
+      const demandaPorTamanho = {};
+      for (const p of participants) {
+        if (temCamiseta(p.tamanhoCamiseta)) {
+          demandaPorTamanho[p.tamanhoCamiseta] = (demandaPorTamanho[p.tamanhoCamiseta] || 0) + 1;
+        }
+      }
+      for (const [sz, qtd] of Object.entries(demandaPorTamanho)) {
+        const rest = restanteTamanho(sz);
+        if (rest < qtd) {
+          alert(`O tamanho ${sz} só tem ${rest === 0 ? "nenhuma" : rest} unidade(s) disponível(eis). Ajuste as escolhas.`);
+          renderParticipants();
+          return;
+        }
+      }
+
       // total = base × quantidade + R$ precoCamiseta para cada participante que escolheu tamanho
       const base = Number(eventData.valor) || 0;
       const precoCam = Number(eventData.precoCamiseta) || 0;
       const comCamiseta = participants.filter(p => temCamiseta(p.tamanhoCamiseta)).length;
       const total = qty * base + comCamiseta * precoCam;
 
-      if (!db || !eventData.id) {
-        alert("Evento não encontrado no Firestore. Crie o evento pelo painel /admin antes de aceitar inscrições.");
-        return;
-      }
-
-      // 1) cria registration no Firestore (status pendente)
+      // 2) cria registration no Firestore (status pendente)
       // Schema alinhado ao backend (webhook usa reg.eventId / reg.quantidade)
       const ref = await db.collection("registrations").add({
         eventId:         eventData.id,

@@ -155,21 +155,35 @@ module.exports = async function handler(req, res) {
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
 
-      // Se mudou para PAGO, incrementa ingressosVendidos do evento
-      if (novoStatus === "pago" && statusAnterior !== "pago") {
-        const eventId = reg.eventId || eventoIdFromPayment;
-        if (eventId) {
-          const evRef = db.collection("events").doc(eventId);
-          const evSnap = await tx.get(evRef);
-          if (evSnap.exists) {
-            const ev = evSnap.data();
-            const vendidos = Number(ev.ingressosVendidos) || 0;
-            const qtd = Number(reg.quantidade) || 1;
-            tx.update(evRef, {
-              ingressosVendidos: vendidos + qtd,
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-          }
+      const eventId = reg.eventId || eventoIdFromPayment;
+      const evRef = eventId ? db.collection("events").doc(eventId) : null;
+
+      // Calcula quantas camisetas por tamanho esta registration consumiu
+      // (usado para incrementar/decrementar vendidoCamisetas no evento)
+      const camisetasPorTamanho = {};
+      (reg.participantes || []).forEach(p => {
+        const sz = p && p.tamanhoCamiseta;
+        if (sz && !/n[ãa]o\s*dese/i.test(String(sz))) {
+          camisetasPorTamanho[sz] = (camisetasPorTamanho[sz] || 0) + 1;
+        }
+      });
+
+      // Se mudou para PAGO, incrementa ingressosVendidos + vendidoCamisetas
+      if (novoStatus === "pago" && statusAnterior !== "pago" && evRef) {
+        const evSnap = await tx.get(evRef);
+        if (evSnap.exists) {
+          const ev = evSnap.data();
+          const vendidos = Number(ev.ingressosVendidos) || 0;
+          const qtd = Number(reg.quantidade) || 1;
+          const vendidoCam = Object.assign({}, ev.vendidoCamisetas || {});
+          Object.entries(camisetasPorTamanho).forEach(([sz, n]) => {
+            vendidoCam[sz] = (Number(vendidoCam[sz]) || 0) + n;
+          });
+          tx.update(evRef, {
+            ingressosVendidos: vendidos + qtd,
+            vendidoCamisetas: vendidoCam,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
         }
       }
 
@@ -177,20 +191,21 @@ module.exports = async function handler(req, res) {
       // decrementa. Notificações atrasadas de "pending"/"rejected" DEPOIS de
       // pago são ignoradas (uma vez aprovado, só refund/chargeback reverte).
       const isEstornoReal = statusAnterior === "pago" && novoStatus === "cancelado";
-      if (isEstornoReal) {
-        const eventId = reg.eventId || eventoIdFromPayment;
-        if (eventId) {
-          const evRef = db.collection("events").doc(eventId);
-          const evSnap = await tx.get(evRef);
-          if (evSnap.exists) {
-            const ev = evSnap.data();
-            const vendidos = Number(ev.ingressosVendidos) || 0;
-            const qtd = Number(reg.quantidade) || 1;
-            tx.update(evRef, {
-              ingressosVendidos: Math.max(0, vendidos - qtd),
-              updatedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-          }
+      if (isEstornoReal && evRef) {
+        const evSnap = await tx.get(evRef);
+        if (evSnap.exists) {
+          const ev = evSnap.data();
+          const vendidos = Number(ev.ingressosVendidos) || 0;
+          const qtd = Number(reg.quantidade) || 1;
+          const vendidoCam = Object.assign({}, ev.vendidoCamisetas || {});
+          Object.entries(camisetasPorTamanho).forEach(([sz, n]) => {
+            vendidoCam[sz] = Math.max(0, (Number(vendidoCam[sz]) || 0) - n);
+          });
+          tx.update(evRef, {
+            ingressosVendidos: Math.max(0, vendidos - qtd),
+            vendidoCamisetas: vendidoCam,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
         }
       }
 
