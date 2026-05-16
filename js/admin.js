@@ -149,7 +149,59 @@
     bindTabs();
     bindEventModal();
     bindRegistrations();
+    // Carrega events de imediato (UX rápido) e sincroniza Firestore ⇄ Mercado Pago
+    // em paralelo. Se a sync atualizar algo (pendente → pago, etc.), recarrega
+    // para refletir os novos números.
     loadEvents();
+    sincronizarPagamentos({ silent: true }).then(result => {
+      if (result && Number(result.updated) > 0) {
+        loadEvents();
+      }
+    });
+  }
+
+  // Chama a API de sincronização. Resolve mesmo se der erro (não bloqueia UI).
+  // Quando silent=true, não mostra alert. Quando silent=false, mostra um resumo.
+  let lastSyncAt = 0;
+  async function sincronizarPagamentos({ silent = false, eventId = null, force = false } = {}) {
+    // throttle simples: 1 sync a cada 20s (a menos que force)
+    const now = Date.now();
+    if (!force && now - lastSyncAt < 20000) return null;
+    lastSyncAt = now;
+
+    const apiBase = (window.__FB && window.__FB.apiBaseUrl) || window.__API_BASE_URL || "";
+    const url = (apiBase ? String(apiBase).replace(/\/$/, "") : "") + "/api/sincronizar-pagamentos";
+
+    try {
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ eventId: eventId || null, sinceHours: 168, limit: 100 })
+      });
+      if (!resp.ok) {
+        const t = await resp.text();
+        if (!silent) alert("Falha ao sincronizar pagamentos: " + t);
+        return null;
+      }
+      const data = await resp.json();
+      if (!silent) {
+        alert(
+          `Sincronização concluída.\n\n` +
+          `Verificadas: ${data.checked}\n` +
+          `Atualizadas: ${data.updated}\n` +
+          `→ Pagas: ${data.pagos}\n` +
+          `→ Recusadas: ${data.recusados}\n` +
+          `→ Canceladas: ${data.cancelados}\n` +
+          `Sem pagamento encontrado: ${data.semPagamento}\n` +
+          `Ignoradas por idade: ${data.ignoradosPorIdade}\n` +
+          `Erros: ${data.erros}`
+        );
+      }
+      return data;
+    } catch (err) {
+      if (!silent) alert("Erro ao sincronizar: " + err.message);
+      return null;
+    }
   }
 
   // -------------------------- TABS ----------------------------
@@ -374,24 +426,33 @@
       // Limit defensivo — pega até 1000 registrations recentes
       const snap = await db.collection("registrations").limit(1000).get();
       let totalInscricoes = 0;
-      let totalParticipantes = 0;
+      let participantesPagos = 0;
+      let participantesPendentes = 0;
       let receita = 0;
       let receitaPendente = 0;
       let inscricoesPagas = 0;
+      let inscricoesPendentes = 0;
       snap.docs.forEach(d => {
         const r = d.data();
         totalInscricoes++;
-        totalParticipantes += Number(r.quantidade) || 1;
+        const qtd = Number(r.quantidade) || 1;
         if (r.statusPagamento === "pago") {
           inscricoesPagas++;
+          participantesPagos += qtd;
           receita += Number(r.valorTotal) || 0;
         } else if (r.statusPagamento === "pendente") {
+          inscricoesPendentes++;
+          participantesPendentes += qtd;
           receitaPendente += Number(r.valorTotal) || 0;
         }
       });
-      $("#admin-stat-inscritos").textContent = totalParticipantes;
+      // "Total de inscritos" agora conta APENAS pagos (inscrição confirmada).
+      // Pendentes e total geral vão pro hint.
+      $("#admin-stat-inscritos").textContent = participantesPagos;
       $("#admin-stat-inscritos-hint").textContent =
-        `${inscricoesPagas} paga(s) · ${totalInscricoes} inscrição${totalInscricoes === 1 ? "" : "s"} no total`;
+        participantesPendentes > 0
+          ? `${inscricoesPagas} paga(s) · ${participantesPendentes} pendente(s) · ${totalInscricoes} no total`
+          : `${inscricoesPagas} inscrição(ões) confirmada(s)`;
       $("#admin-stat-receita").textContent = formatBRL(receita);
       const hintEl = document.getElementById("admin-stat-receita-hint");
       if (hintEl) {
@@ -663,6 +724,11 @@
 
     const eventId = $("#filter-event").value;
     const status = $("#filter-status").value;
+
+    // Antes de listar, força sincronização Firestore ⇄ Mercado Pago para
+    // o evento filtrado (ou todos). Garante que pendentes que já foram pagas
+    // tenham o status atualizado antes da consulta.
+    await sincronizarPagamentos({ silent: true, eventId: eventId || null });
 
     try {
       let q = db.collection("registrations");
