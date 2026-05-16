@@ -4,7 +4,8 @@
   "trailingSlash": false,
   "functions": {
     "api/criar-preferencia.js": { "maxDuration": 15 },
-    "api/webhook-mercadopago.js": { "maxDuration": 30 }
+    "api/webhook-mercadopago.js": { "maxDuration": 30 },
+    "api/sincronizar-pagamentos.js": { "maxDuration": 60 }
   },
   "rewrites": [
     { "source": "/mulheres", "destination": "/pages/mulheres.html" },
