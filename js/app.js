@@ -431,12 +431,6 @@
     btn.disabled = true;
     btnText.innerHTML = '<span class="spinner spinner-sm" style="border-top-color:#fff;border-color:rgba(255,255,255,0.4)"></span> Processando...';
 
-    // Abrimos uma janela em branco AGORA, ainda dentro do gesto de clique do
-    // usuário, para não cair no bloqueador de popups depois do await fetch.
-    // Se a janela falhar (popup bloqueado), caímos no fluxo antigo: redireciona
-    // a aba atual para o checkout do MP.
-    const mpWindow = window.open("about:blank", "_blank");
-
     try {
       const valorTotal = (Number(ev.valor) || 0) * state.quantity;
 
@@ -464,7 +458,6 @@
       });
 
       if (!resp.ok) {
-        if (mpWindow && !mpWindow.closed) mpWindow.close();
         const errText = await resp.text();
         throw new Error("Falha ao criar preferência: " + errText);
       }
@@ -472,24 +465,18 @@
 
       const checkoutUrl = data.init_point || data.sandbox_init_point;
       if (!checkoutUrl) {
-        if (mpWindow && !mpWindow.closed) mpWindow.close();
         throw new Error("API não retornou link de pagamento.");
       }
 
-      const successUrl = "/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId || "");
-
-      if (mpWindow && !mpWindow.closed) {
-        // Checkout MP em nova aba, esta aba já vai pra /sucesso fazer polling.
-        // Quando o webhook confirmar o pagamento, /sucesso mostra a mensagem
-        // de boas-vindas com o botão de WhatsApp automaticamente.
-        mpWindow.location.href = checkoutUrl;
-        window.location.href = successUrl;
-      } else {
-        // Popup bloqueado: fluxo antigo — MP na mesma aba.
-        window.location.href = checkoutUrl;
-      }
+      // Vai pro Mercado Pago na MESMA aba. Depois do pagamento, o MP redireciona
+      // de volta pelos back_urls configurados em /api/criar-preferencia.js:
+      //   - aprovado  → /sucesso?registrationId=<id>
+      //   - pendente  → /pendente?registrationId=<id>  (PIX aguardando compensação)
+      //   - recusado  → /erro?registrationId=<id>
+      // Como o usuário permanece na mesma aba o tempo todo, ele sempre acaba
+      // numa página do site após o checkout (e não preso na tela do MP).
+      window.location.href = checkoutUrl;
     } catch (err) {
-      if (mpWindow && !mpWindow.closed) mpWindow.close();
       console.error(err);
       alert("Erro ao iniciar pagamento. Tente novamente em instantes.\n\n" + (err.message || ""));
       btn.disabled = false;
