@@ -517,6 +517,28 @@
         Se você pagou via PIX, a compensação costuma levar de alguns segundos até alguns minutos.
         Esta página atualiza sozinha — não precisa fazer nada.
       </p>
+
+      <!-- Botão para reabrir o checkout do MP (preenchido pelo JS quando há checkoutUrl).
+           Aparece se: (a) popup foi bloqueado e o usuário veio de /sucesso?...&checkoutUrl=...
+                       (b) usuário fechou a aba do MP por acidente. -->
+      <div id="reopen-checkout-wrap" class="hidden" style="margin-top:28px">
+        <a id="btn-reopen-checkout"
+           href="#"
+           target="_blank"
+           rel="noopener"
+           class="btn btn-back"
+           style="max-width:380px;margin:0 auto;background:linear-gradient(135deg,#009ee3,#005bb5);box-shadow:0 8px 22px rgba(0,158,227,.28)">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M15 3h6v6M10 14L21 3M21 14v7H3V3h7"/>
+          </svg>
+          Abrir tela de pagamento
+        </a>
+        <p style="margin:14px auto 0;max-width:440px;font-size:13.5px;color:var(--muted);font-family:var(--font-serif);font-style:italic">
+          O pagamento abre em outra aba. Esta página confirma sua inscrição
+          assim que o Pix cair — você não precisa voltar manualmente.
+        </p>
+      </div>
+
       <div class="meta-row" id="pending-meta" style="margin-top:24px"></div>
     </section>
   </div>
@@ -615,6 +637,28 @@
 
   const fmtBRL = (n) => "R$ " + Number(n || 0).toFixed(2).replace(".", ",");
 
+  /* Recupera checkoutUrl quando o popup do MP foi bloqueado.
+     Pode vir por:
+       (a) query string  ?checkoutUrl=URL_ENCODED  (vindo do app.js)
+       (b) sessionStorage  mp_checkout_<regId>    (salvo pelo app.js)
+     É usado APENAS para mostrar um botão "Abrir tela de pagamento"
+     nesta página enquanto aguardamos o webhook. NÃO faz redirect
+     automático — o clique tem que ser do usuário pra não cair em
+     bloqueador de popup. */
+  function getCheckoutUrl() {
+    const fromQuery = params.get("checkoutUrl");
+    if (fromQuery) {
+      try { sessionStorage.setItem("mp_checkout_" + regId, fromQuery); } catch(_){}
+      return fromQuery;
+    }
+    try {
+      return sessionStorage.getItem("mp_checkout_" + regId) || "";
+    } catch (_) {
+      return "";
+    }
+  }
+  const checkoutUrl = getCheckoutUrl();
+
   function show(stateId) {
     ["loading-state","paid-state","pending-state","error-state","notfound-state"]
       .forEach(id => $(id).classList.toggle("hidden", id !== stateId));
@@ -683,6 +727,9 @@
   function renderPaid(reg) {
     show("paid-state");
 
+    // Pagamento confirmado: o checkoutUrl não serve mais — limpa.
+    try { sessionStorage.removeItem("mp_checkout_" + regId); } catch(_){}
+
     const eventoNome = reg.eventNome || "ao nosso evento";
     $("welcome-event-name").textContent = eventoNome;
 
@@ -738,16 +785,41 @@
   function renderPending(opts) {
     show("pending-state");
     $("pending-meta").textContent = regId ? ("ID da inscrição: " + regId) : "";
+
     const hero = document.querySelector("#pending-state .pending-hero");
+    const reopenWrap = $("reopen-checkout-wrap");
+    const reopenBtn  = $("btn-reopen-checkout");
+
+    // Se temos um checkoutUrl disponível (popup foi bloqueado, ou usuário
+    // fechou a aba do MP), oferece um botão para reabrir o pagamento.
+    if (checkoutUrl && reopenWrap && reopenBtn) {
+      reopenBtn.href = checkoutUrl;
+      reopenWrap.classList.remove("hidden");
+    } else if (reopenWrap) {
+      reopenWrap.classList.add("hidden");
+    }
+
     if (hero) {
       const title = hero.querySelector(".confirm-title");
       const sub = hero.querySelector(".confirm-sub");
       const eyebrow = hero.querySelector(".confirm-eyebrow");
-      if (opts && opts.aguardandoPagamento) {
+
+      // Caso 1: ainda não temos registro no Firestore E temos checkoutUrl
+      //         → usuário ainda não pagou (ou popup foi bloqueado).
+      //         Mostra um CTA claro para abrir o pagamento.
+      if (opts && opts.aguardandoPagamento && checkoutUrl) {
+        if (eyebrow) eyebrow.textContent = "Quase lá";
+        if (title) title.innerHTML = '<span>Abra o pagamento</span><span class="strong">e finalize seu Pix</span>';
+        if (sub) sub.textContent = "Toque no botão abaixo para abrir a tela de pagamento. Esta página confirma sua inscrição automaticamente assim que o Pix cair.";
+      }
+      // Caso 2: aguardando pagamento mas sem checkoutUrl (fluxo do popup MP separado)
+      else if (opts && opts.aguardandoPagamento) {
         if (eyebrow) eyebrow.textContent = "Aguardando seu pagamento";
         if (title) title.innerHTML = '<span>Estamos esperando</span><span class="strong">a confirmação do Pix</span>';
         if (sub) sub.textContent = "Finalize o pagamento na aba do Mercado Pago. Assim que cair, esta página atualiza sozinha com sua confirmação e o botão de WhatsApp.";
-      } else {
+      }
+      // Caso 3: já existe registro pendente — webhook chegou mas ainda não compensou
+      else {
         if (eyebrow) eyebrow.textContent = "Aguardando confirmação";
         if (title) title.innerHTML = '<span>Pagamento em</span><span class="strong">processamento</span>';
         if (sub) sub.textContent = "Se você pagou via PIX, a compensação costuma levar de alguns segundos até alguns minutos. Esta página atualiza sozinha — não precisa fazer nada.";
