@@ -240,13 +240,26 @@ module.exports = async function handler(req, res) {
       event_id: eventId,
       quantidade: qtd
     },
+    // IMPORTANTE: `pending` aponta para /sucesso (não /pendente).
+    // Motivo: no Pix, quando o usuário clica em "Voltar ao site" dentro
+    // do checkout do Mercado Pago, o status no momento do clique muitas
+    // vezes é "pending" (Pix ainda não compensado de fato no MP),
+    // mesmo que o banco já tenha debitado. Se mandarmos para /pendente,
+    // o usuário cai numa página com polling curto (3 min). Mandando
+    // direto para /sucesso, ele cai exatamente onde queremos:
+    // a página de confirmação faz polling longo (30 min), detecta
+    // a chegada do webhook e mostra "Sua compra foi realizada"
+    // automaticamente.
     back_urls: {
       success: `${PUBLIC_SITE_URL}/sucesso?registrationId=${encodeURIComponent(checkoutId)}`,
-      // PIX cai aqui — /sucesso já tem estado "pendente" embutido e polling de 30 min,
-      // então o usuário vê a confirmação na mesma página assim que o webhook compensar.
       pending: `${PUBLIC_SITE_URL}/sucesso?registrationId=${encodeURIComponent(checkoutId)}`,
       failure: `${PUBLIC_SITE_URL}/erro?registrationId=${encodeURIComponent(checkoutId)}`
     },
+    // auto_return funciona para cartão (status approved dentro da sessão).
+    // Para Pix, o MP NÃO redireciona automaticamente: mostra um botão
+    // manual "Voltar ao site". Por isso, o fluxo principal do app.js
+    // já abre o MP em janela separada e manda a aba original para
+    // /sucesso fazer polling.
     auto_return: "approved",
     statement_descriptor: "EVENTO",
     payment_methods: {
