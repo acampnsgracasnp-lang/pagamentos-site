@@ -1753,41 +1753,29 @@
       const comCamiseta = participants.filter(p => temCamiseta(p.tamanhoCamiseta)).length;
       const total = qty * base + comCamiseta * precoCam;
 
-      // 2) cria registration no Firestore (status pendente)
-      // Schema alinhado ao backend (webhook usa reg.eventId / reg.quantidade)
-      const ref = await db.collection("registrations").add({
-        eventId:         eventData.id,
-        eventSlug:       eventData.slug || "",
-        eventNome:       eventData.nome || "",
-        participantes:   participants,
-        quantidade:      qty,
-        valorUnitario:   base,
-        precoCamiseta:   precoCam,
-        comCamiseta:     comCamiseta,
-        valorTotal:      total,
-        statusPagamento: "pendente",
-        mercadoPagoPreferenceId: "",
-        mercadoPagoPaymentId:    "",
-        createdAt:       firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt:       firebase.firestore.FieldValue.serverTimestamp()
-      });
-      const regId = ref.id;
+      // NÃO criamos nada no Firestore aqui. A inscrição definitiva é criada
+      // pelo webhook quando o Mercado Pago confirma o pagamento.
 
-      // 2) chama backend para criar preferência no Mercado Pago
       const resp = await fetch(`${API_BASE_URL}/api/criar-preferencia`, {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({
           eventId:        eventData.id,
-          registrationId: regId,
+          eventSlug:      eventData.slug || "",
+          eventNome:      eventData.nome || "",
           quantidade:     qty,
           valorTotal:     total,
+          valorUnitario:  base,
+          precoCamiseta:  precoCam,
+          comCamiseta:    comCamiseta,
+          participantes:  participants,
           titulo:         `Inscrição — ${eventData.nome || "Evento"}`,
           descricao:      comCamiseta > 0
                             ? `${qty} inscrição(ões) · ${comCamiseta} com camiseta`
                             : `${qty} inscrição(ões)`,
           payer: {
             name:  participants[0]?.nome     || "",
+            email: participants[0]?.email    || "",
             phone: participants[0]?.telefone || ""
           }
         })
@@ -1801,12 +1789,6 @@
       if (!data?.init_point && !data?.sandbox_init_point) {
         throw new Error(data?.error || "API não retornou link de pagamento.");
       }
-
-      // grava o preferenceId no registration (rastreabilidade)
-      await db.collection("registrations").doc(regId).update({
-        mercadoPagoPreferenceId: data.id || "",
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
 
       window.location.href = data.init_point || data.sandbox_init_point;
       return;
