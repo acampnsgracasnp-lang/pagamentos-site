@@ -105,19 +105,27 @@ module.exports = async function handler(req, res) {
     res.status(400).json({ error: "eventId é obrigatório." });
     return;
   }
-  const qtd = Number(quantidade);
-  if (!Number.isInteger(qtd) || qtd < 1 || qtd > 100) {
-    res.status(400).json({ error: "quantidade inválida." });
+  const sanitized = sanitizeParticipantes(participantes);
+  if (sanitized.length < 1 || sanitized.length > 100) {
+    res.status(400).json({
+      error: "Lista de participantes vazia ou inválida.",
+      debug: {
+        participantesRecebidos: Array.isArray(participantes) ? participantes.length : `tipo=${typeof participantes}`,
+        bodyKeys: Object.keys(body)
+      }
+    });
     return;
+  }
+  // Quantidade é derivada do array de participantes (fonte da verdade).
+  // O campo "quantidade" do body é apenas referência caso o cliente envie.
+  const qtd = sanitized.length;
+  const qtdEnviada = Number(quantidade);
+  if (Number.isInteger(qtdEnviada) && qtdEnviada > 0 && qtdEnviada !== qtd) {
+    console.warn("[criar-preferencia] quantidade enviada difere do número de participantes:", { qtdEnviada, qtdReal: qtd });
   }
   const valor = Number(valorTotal);
   if (!isFinite(valor) || valor <= 0 || valor > 1000000) {
     res.status(400).json({ error: "valorTotal inválido." });
-    return;
-  }
-  const sanitized = sanitizeParticipantes(participantes);
-  if (sanitized.length !== qtd) {
-    res.status(400).json({ error: "Número de participantes não confere com a quantidade." });
     return;
   }
   for (let i = 0; i < sanitized.length; i++) {
