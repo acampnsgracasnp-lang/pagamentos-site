@@ -462,6 +462,9 @@
     position: relative;
     width: 100%; max-width: 360px;
     aspect-ratio: 1;
+    object-fit: contain;
+    display: block;
+    border-radius: var(--radius);
   }
 
   .shirt-side{
@@ -729,6 +732,7 @@
     margin-bottom: 7px;
   }
   .field label .req{ color: var(--rose); margin-left: 2px;}
+  .field label .field-optional{ color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 4px; }
   .field input,
   .field textarea,
   .field select{
@@ -1245,75 +1249,9 @@
 
         <!-- VITRINE DA CAMISETA -->
         <div class="shirt-showcase">
-          <svg class="shirt-illustration" viewBox="0 0 360 360" aria-hidden="true">
-            <!-- backgrounds decorativos -->
-            <g opacity=".25" stroke="#8b2d52" fill="none" stroke-width="1">
-              <path d="M40 280 Q80 240 130 260 Q90 280 70 320"/>
-              <path d="M55 295 Q75 275 100 280" stroke-width=".8"/>
-              <circle cx="130" cy="260" r="3" fill="#b8456e" opacity=".6"/>
-              <circle cx="55" cy="295" r="2" fill="#b8456e" opacity=".6"/>
-              <path d="M280 70 Q310 100 290 140 Q260 110 280 70" />
-              <circle cx="285" cy="105" r="2.5" fill="#b8456e" opacity=".6"/>
-            </g>
-
-            <!-- camiseta - frente -->
-            <g transform="translate(60 80)">
-              <!-- corpo -->
-              <path d="M30 30 L70 10 Q90 18 110 10 L150 30 L160 70 L140 80 L140 200 L40 200 L40 80 L20 70 Z"
-                    fill="#f5b9c0" stroke="#c4677a" stroke-width="1.4"/>
-              <!-- gola -->
-              <ellipse cx="90" cy="14" rx="20" ry="6" fill="#e8a4ad" stroke="#b8456e" stroke-width="1.2"/>
-              <!-- sombras -->
-              <path d="M40 80 L40 200 L60 200 L60 85 Z" fill="#000" opacity=".05"/>
-              <path d="M140 80 L140 200 L120 200 L120 85 Z" fill="#000" opacity=".05"/>
-
-              <!-- estampa MOVIDAS PELO ESPÍRITO -->
-              <text x="90" y="100" text-anchor="middle"
-                    font-family="Manrope, sans-serif" font-size="10" font-weight="700"
-                    letter-spacing="3" fill="#5b1830">MOVIDAS</text>
-              <text x="90" y="115" text-anchor="middle"
-                    font-family="Manrope, sans-serif" font-size="8" font-weight="500"
-                    letter-spacing="2" fill="#8b2d52" font-style="italic">pelo</text>
-              <text x="90" y="140" text-anchor="middle"
-                    font-family="Fraunces, serif" font-size="22" font-weight="600"
-                    font-style="italic" fill="#5b1830">Espírito</text>
-              <!-- ornamento sob o título -->
-              <line x1="70" y1="148" x2="110" y2="148" stroke="#b8935a" stroke-width="1"/>
-              <circle cx="90" cy="148" r="2" fill="#b8935a"/>
-
-              <!-- folhas decorativas na estampa -->
-              <g opacity=".4" stroke="#8b2d52" fill="none" stroke-width=".8">
-                <path d="M50 160 Q60 155 70 160 Q60 165 50 160"/>
-                <path d="M110 160 Q120 155 130 160 Q120 165 110 160"/>
-              </g>
-            </g>
-
-            <!-- camiseta - costas -->
-            <g transform="translate(220 105)">
-              <!-- corpo -->
-              <path d="M20 20 L60 5 Q70 12 80 5 L120 20 L130 55 L115 62 L115 165 L25 165 L25 62 L10 55 Z"
-                    fill="#f5b9c0" stroke="#c4677a" stroke-width="1.2"/>
-              <!-- gola atrás -->
-              <ellipse cx="70" cy="10" rx="14" ry="3" fill="#e8a4ad" stroke="#b8456e" stroke-width="1"/>
-
-              <!-- texto atrás -->
-              <text x="70" y="65" text-anchor="middle"
-                    font-family="Fraunces, serif" font-style="italic" font-size="7" fill="#8b2d52">"Os ventos do Espírito</text>
-              <text x="70" y="75" text-anchor="middle"
-                    font-family="Fraunces, serif" font-style="italic" font-size="7" fill="#8b2d52">já estão soprando…"</text>
-
-              <!-- rosa decorativa atrás -->
-              <g transform="translate(70 110)" opacity=".25">
-                <circle cx="0" cy="0" r="14" fill="none" stroke="#8b2d52" stroke-width=".8"/>
-                <circle cx="0" cy="0" r="8" fill="none" stroke="#8b2d52" stroke-width=".8"/>
-                <circle cx="0" cy="0" r="3" fill="#b8456e"/>
-              </g>
-
-              <text x="70" y="148" text-anchor="middle"
-                    font-family="Manrope, sans-serif" font-size="5" font-weight="700"
-                    letter-spacing="1.5" fill="#5b1830">1º ENCONTRO DE MULHERES</text>
-            </g>
-          </svg>
+          <img class="shirt-illustration"
+               src="/images/camiseta.jpeg"
+               alt="Camiseta oficial &quot;Movidas pelo Espírito&quot;">
         </div>
 
         <!-- INFO LATERAL -->
@@ -1725,7 +1663,7 @@
         : "";
       return `
         <div class="size-option ${isNoShirt ? "no-shirt" : ""} ${esgotado ? "size-out" : ""}">
-          <input type="radio" name="size-${idx}" id="size-${idx}-${i}" value="${sz}" ${i === 0 ? "required" : ""} ${esgotado ? "disabled" : ""}>
+          <input type="radio" name="size-${idx}" id="size-${idx}-${i}" value="${sz}" ${esgotado ? "disabled" : ""}>
           <label for="size-${idx}-${i}" title="${restLabel}">
             ${sz}${restLabel ? `<span class="size-rest">${restLabel}</span>` : ""}
           </label>
@@ -1780,7 +1718,7 @@
 
         ${eventData.exigeCamiseta !== false ? `
           <div class="field">
-            <label>Tamanho da camiseta <span class="req">*</span></label>
+            <label>Tamanho da camiseta <small class="field-optional">(opcional)</small></label>
             <div class="size-options">${sizeOptionsHTML}</div>
             <div class="field-hint">
               Inscrição com camiseta: <strong>${fmtBRL(eventData.valor + (eventData.precoCamiseta||0))}</strong> ·
@@ -2051,10 +1989,6 @@
     for (const [i, p] of participants.entries()) {
       if (!p.nome || !p.telefone || !p.email) {
         alert(`Preencha os campos obrigatórios da Participante ${i+1}.`);
-        return;
-      }
-      if (eventData.exigeCamiseta !== false && !p.tamanhoCamiseta) {
-        alert(`Selecione o tamanho da camiseta da Participante ${i+1}.`);
         return;
       }
     }
