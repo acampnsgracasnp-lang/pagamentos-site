@@ -242,7 +242,9 @@ module.exports = async function handler(req, res) {
     },
     back_urls: {
       success: `${PUBLIC_SITE_URL}/sucesso?registrationId=${encodeURIComponent(checkoutId)}`,
-      pending: `${PUBLIC_SITE_URL}/pendente?registrationId=${encodeURIComponent(checkoutId)}`,
+      // PIX cai aqui — /sucesso já tem estado "pendente" embutido e polling de 30 min,
+      // então o usuário vê a confirmação na mesma página assim que o webhook compensar.
+      pending: `${PUBLIC_SITE_URL}/sucesso?registrationId=${encodeURIComponent(checkoutId)}`,
       failure: `${PUBLIC_SITE_URL}/erro?registrationId=${encodeURIComponent(checkoutId)}`
     },
     auto_return: "approved",
