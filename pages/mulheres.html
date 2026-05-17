@@ -1407,14 +1407,14 @@
               <div>
                 <div class="total-label">Total a pagar</div>
                 <div class="total-break" id="total-breakdown">1 × R$ 120,00 (sem camiseta)</div>
-                <div class="total-fee-note">Valor final — taxas de cartão e PIX já incluídas. Você não paga nada além disso.</div>
+                <div class="total-fee-note">Valor final — taxa do Pix já incluída. Você não paga nada além disso.</div>
               </div>
               <div class="total-value" id="total-value">R$ 120<small>,00</small></div>
             </div>
 
             <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-submit" style="margin-top: 22px;">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
-              <span id="btn-submit-text">Continuar para o pagamento</span>
+              <span id="btn-submit-text">Pagar com Pix</span>
             </button>
 
             <div class="trust-row">
@@ -1427,7 +1427,7 @@
               <span class="sep">•</span>
               <span class="it">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
-                PIX e cartão
+                Pagamento via PIX
               </span>
               <span class="sep">•</span>
               <span>Sem taxa extra para você</span>
@@ -2062,7 +2062,7 @@
     btn.disabled = true;
     btnTxt.textContent = "Verificando vagas…";
 
-    let modalAberto = false;
+    let navegando = false;
     try {
       if (!db || !eventData.id) {
         alert("Evento não encontrado no Firestore. Crie o evento pelo painel /admin antes de aceitar inscrições.");
@@ -2137,21 +2137,51 @@
         }
       };
 
-      openPayModal({ total, payload, eventNome: eventData.nome || "" });
-      modalAberto = true;
+      // Cartão desativado — vai direto para Pix.
+      // Para reativar o seletor Pix/Cartão, troque esta chamada por
+      //   openPayModal({ total, payload, eventNome: eventData.nome || "" });
+      btnTxt.textContent = "Gerando seu QR Code Pix…";
+      payContext = { total, payload, eventNome: eventData.nome || "" };
+
+      const resp = await fetch(`${API_BASE_URL}/api/criar-pix`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error(await parseApiError(resp));
+      const data = await resp.json();
+      if (!data.qrCodeBase64 || !data.qrCodeText || !data.pendingCheckoutId) {
+        throw new Error("Resposta inválida do servidor Pix.");
+      }
+      try {
+        localStorage.setItem("pix:" + data.pendingCheckoutId, JSON.stringify({
+          qrCodeBase64: data.qrCodeBase64,
+          qrCodeText:   data.qrCodeText,
+          ticketUrl:    data.ticketUrl || "",
+          paymentId:    data.paymentId,
+          expiresAt:    data.expiresAt,
+          valor:        data.valor,
+          eventNome:    eventData.nome || "",
+          ts:           Date.now()
+        }));
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id:     data.pendingCheckoutId,
+          ts:     Date.now(),
+          slug:   eventData.slug || "",
+          metodo: "pix"
+        }));
+      } catch (err) {
+        console.warn("localStorage indisponível:", err);
+      }
+      navegando = true;
+      location.replace("/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId));
     } catch (err) {
       console.error(err);
-      alert("❌ Algo deu errado: " + err.message);
+      alert("❌ Não foi possível gerar o Pix: " + (err.message || err));
     } finally {
-      // Só reseta o botão se o modal NÃO abriu. Se abriu, o close
-      // do modal é quem reseta (ou os handlers Pix/Cartão navegam).
-      if (!modalAberto) {
+      if (!navegando) {
         btn.disabled = false;
-        btnTxt.textContent = "Continuar para o pagamento";
-      } else {
-        // Botão fica em estado "consistente" caso o usuário feche o modal:
-        // closePayModal() já chama btn.disabled = false e restaura o texto.
-        btnTxt.textContent = "Continuar para o pagamento";
+        btnTxt.textContent = "Pagar com Pix";
       }
     }
   });
