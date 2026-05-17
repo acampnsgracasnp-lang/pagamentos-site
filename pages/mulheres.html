@@ -1415,6 +1415,41 @@
      CARREGAMENTO DO EVENTO
      ========================================================= */
   async function loadEvent(){
+    // Recuperação automática: se a usuária iniciou um pagamento recentemente
+    // e voltou pra cá (ou o MP não redirecionou após Pix aprovado), checamos
+    // o status no Firestore e redirecionamos pra /sucesso ou /pendente.
+    try {
+      const raw = localStorage.getItem("lastCheckout");
+      if (raw && db) {
+        const last = JSON.parse(raw);
+        const idadeMs = Date.now() - (Number(last.ts) || 0);
+        // Janela de 30 minutos — passa disso, considera fluxo abandonado.
+        if (last && last.id && idadeMs < 30 * 60 * 1000) {
+          const snap = await db.collection("registrations").doc(last.id).get();
+          if (snap.exists) {
+            const st = String(snap.data().statusPagamento || "").toLowerCase();
+            if (st === "pago") {
+              localStorage.removeItem("lastCheckout");
+              location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
+              return;
+            }
+            if (st === "pendente") {
+              location.replace("/pendente?registrationId=" + encodeURIComponent(last.id));
+              return;
+            }
+            if (st === "recusado" || st === "cancelado") {
+              localStorage.removeItem("lastCheckout");
+              // Deixa seguir o fluxo normal — usuária pode tentar de novo.
+            }
+          }
+        } else if (idadeMs >= 30 * 60 * 1000) {
+          localStorage.removeItem("lastCheckout");
+        }
+      }
+    } catch (err) {
+      console.warn("Falha ao verificar checkout pendente:", err);
+    }
+
     const params = new URLSearchParams(window.location.search);
     const slug = params.get("evento") || DEFAULT_SLUG;
     eventData.slug = slug;
@@ -1789,6 +1824,17 @@
       if (!data?.init_point && !data?.sandbox_init_point) {
         throw new Error(data?.error || "API não retornou link de pagamento.");
       }
+
+      // Salva o checkoutId pra recuperar o fluxo caso o MP não redirecione
+      // de volta (comum em Pix, quando a usuária paga no app do banco e
+      // fecha a aba do MP antes da confirmação).
+      try {
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id: data.pendingCheckoutId || "",
+          ts: Date.now(),
+          slug: eventData.slug || ""
+        }));
+      } catch {}
 
       window.location.href = data.init_point || data.sandbox_init_point;
       return;
