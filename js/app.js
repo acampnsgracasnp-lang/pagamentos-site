@@ -431,6 +431,12 @@
     btn.disabled = true;
     btnText.innerHTML = '<span class="spinner spinner-sm" style="border-top-color:#fff;border-color:rgba(255,255,255,0.4)"></span> Processando...';
 
+    // Abrimos uma janela em branco AGORA, ainda dentro do gesto de clique do
+    // usuário, para não cair no bloqueador de popups depois do await fetch.
+    // Se a janela falhar (popup bloqueado), caímos no fluxo antigo: redireciona
+    // a aba atual para o checkout do MP.
+    const mpWindow = window.open("about:blank", "_blank");
+
     try {
       const valorTotal = (Number(ev.valor) || 0) * state.quantity;
 
@@ -458,6 +464,7 @@
       });
 
       if (!resp.ok) {
+        if (mpWindow && !mpWindow.closed) mpWindow.close();
         const errText = await resp.text();
         throw new Error("Falha ao criar preferência: " + errText);
       }
@@ -465,18 +472,42 @@
 
       const checkoutUrl = data.init_point || data.sandbox_init_point;
       if (!checkoutUrl) {
+        if (mpWindow && !mpWindow.closed) mpWindow.close();
         throw new Error("API não retornou link de pagamento.");
       }
 
-      // Vai pro Mercado Pago na MESMA aba. Depois do pagamento, o MP redireciona
-      // de volta pelos back_urls configurados em /api/criar-preferencia.js:
-      //   - aprovado  → /sucesso?registrationId=<id>
-      //   - pendente  → /pendente?registrationId=<id>  (PIX aguardando compensação)
-      //   - recusado  → /erro?registrationId=<id>
-      // Como o usuário permanece na mesma aba o tempo todo, ele sempre acaba
-      // numa página do site após o checkout (e não preso na tela do MP).
-      window.location.href = checkoutUrl;
+      const successUrl = "/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId || "");
+
+      // Guarda o checkoutUrl em sessionStorage para que /sucesso possa
+      // reabrir o pagamento caso o usuário feche a aba do MP por acidente
+      // ou caso o popup tenha sido bloqueado.
+      try {
+        sessionStorage.setItem(
+          "mp_checkout_" + (data.pendingCheckoutId || ""),
+          checkoutUrl
+        );
+      } catch (_) { /* navegador pode bloquear storage em modo privado */ }
+
+      if (mpWindow && !mpWindow.closed) {
+        // Checkout MP em nova aba, esta aba já vai pra /sucesso fazer polling.
+        // Quando o webhook confirmar o pagamento, /sucesso mostra a mensagem
+        // de boas-vindas com o botão de WhatsApp automaticamente.
+        mpWindow.location.href = checkoutUrl;
+        window.location.href = successUrl;
+      } else {
+        // Popup bloqueado (comum em mobile/Safari).
+        // ANTES: mandávamos a aba atual direto para o MP — o usuário pagava
+        // o Pix e ficava preso em /congrats/instructions/ sem conseguir voltar.
+        // AGORA: mandamos para /sucesso passando o checkoutUrl. /sucesso
+        // mostra um botão "Abrir tela de pagamento" (clique direto do
+        // usuário = sem bloqueio de popup) e já inicia o polling em
+        // paralelo. Quando o webhook confirmar, a tela atualiza sozinha.
+        const fallbackUrl = successUrl +
+          "&checkoutUrl=" + encodeURIComponent(checkoutUrl);
+        window.location.href = fallbackUrl;
+      }
     } catch (err) {
+      if (mpWindow && !mpWindow.closed) mpWindow.close();
       console.error(err);
       alert("Erro ao iniciar pagamento. Tente novamente em instantes.\n\n" + (err.message || ""));
       btn.disabled = false;
