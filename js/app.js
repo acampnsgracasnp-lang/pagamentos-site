@@ -431,13 +431,15 @@
     btn.disabled = true;
     btnText.innerHTML = '<span class="spinner spinner-sm" style="border-top-color:#fff;border-color:rgba(255,255,255,0.4)"></span> Processando...';
 
+    // Abrimos uma janela em branco AGORA, ainda dentro do gesto de clique do
+    // usuário, para não cair no bloqueador de popups depois do await fetch.
+    // Se a janela falhar (popup bloqueado), caímos no fluxo antigo: redireciona
+    // a aba atual para o checkout do MP.
+    const mpWindow = window.open("about:blank", "_blank");
+
     try {
       const valorTotal = (Number(ev.valor) || 0) * state.quantity;
 
-      // IMPORTANTE: NÃO salvamos nada no Firestore aqui. A inscrição
-      // definitiva é criada pelo webhook quando o Mercado Pago confirma
-      // o pagamento. Aqui só enviamos os dados pro backend criar a
-      // preferência e redirecionamos pro checkout.
       const apiUrl = (apiBaseUrl ? apiBaseUrl.replace(/\/$/, "") : "") + "/api/criar-preferencia";
 
       const resp = await fetch(apiUrl, {
@@ -462,17 +464,32 @@
       });
 
       if (!resp.ok) {
+        if (mpWindow && !mpWindow.closed) mpWindow.close();
         const errText = await resp.text();
         throw new Error("Falha ao criar preferência: " + errText);
       }
       const data = await resp.json();
 
-      if (!data.init_point && !data.sandbox_init_point) {
+      const checkoutUrl = data.init_point || data.sandbox_init_point;
+      if (!checkoutUrl) {
+        if (mpWindow && !mpWindow.closed) mpWindow.close();
         throw new Error("API não retornou link de pagamento.");
       }
 
-      window.location.href = data.init_point || data.sandbox_init_point;
+      const successUrl = "/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId || "");
+
+      if (mpWindow && !mpWindow.closed) {
+        // Checkout MP em nova aba, esta aba já vai pra /sucesso fazer polling.
+        // Quando o webhook confirmar o pagamento, /sucesso mostra a mensagem
+        // de boas-vindas com o botão de WhatsApp automaticamente.
+        mpWindow.location.href = checkoutUrl;
+        window.location.href = successUrl;
+      } else {
+        // Popup bloqueado: fluxo antigo — MP na mesma aba.
+        window.location.href = checkoutUrl;
+      }
     } catch (err) {
+      if (mpWindow && !mpWindow.closed) mpWindow.close();
       console.error(err);
       alert("Erro ao iniciar pagamento. Tente novamente em instantes.\n\n" + (err.message || ""));
       btn.disabled = false;
