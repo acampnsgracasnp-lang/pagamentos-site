@@ -735,9 +735,24 @@
     };
   }
 
-  function renderPending() {
+  function renderPending(opts) {
     show("pending-state");
     $("pending-meta").textContent = regId ? ("ID da inscrição: " + regId) : "";
+    const hero = document.querySelector("#pending-state .pending-hero");
+    if (hero) {
+      const title = hero.querySelector(".confirm-title");
+      const sub = hero.querySelector(".confirm-sub");
+      const eyebrow = hero.querySelector(".confirm-eyebrow");
+      if (opts && opts.aguardandoPagamento) {
+        if (eyebrow) eyebrow.textContent = "Aguardando seu pagamento";
+        if (title) title.innerHTML = '<span>Estamos esperando</span><span class="strong">a confirmação do Pix</span>';
+        if (sub) sub.textContent = "Finalize o pagamento na aba do Mercado Pago. Assim que cair, esta página atualiza sozinha com sua confirmação e o botão de WhatsApp.";
+      } else {
+        if (eyebrow) eyebrow.textContent = "Aguardando confirmação";
+        if (title) title.innerHTML = '<span>Pagamento em</span><span class="strong">processamento</span>';
+        if (sub) sub.textContent = "Se você pagou via PIX, a compensação costuma levar de alguns segundos até alguns minutos. Esta página atualiza sozinha — não precisa fazer nada.";
+      }
+    }
   }
 
   function renderError() {
@@ -756,7 +771,7 @@
   }
 
   let tries = 0;
-  const maxTries = 60;       // ~3 minutos
+  const maxTries = 600;      // ~30 minutos (Pix pode demorar até a pessoa pagar)
   const intervalMs = 3000;   // 3s entre tentativas
 
   async function check() {
@@ -764,9 +779,9 @@
     try {
       const snap = await db.collection("registrations").doc(regId).get();
       if (!snap.exists) {
-        // O webhook pode ainda não ter materializado a inscrição.
-        // Mantém o estado "aguardando" e segue tentando até maxTries.
-        renderPending();
+        // Registration ainda não existe → webhook não disparou ainda,
+        // provavelmente porque a participante ainda não pagou.
+        renderPending({ aguardandoPagamento: true });
         if (tries < maxTries) {
           setTimeout(check, intervalMs);
         } else {
@@ -785,7 +800,8 @@
         renderError();
         return;
       }
-      renderPending();
+      // Existe mas está "pendente" → MP já notificou mas ainda não compensou.
+      renderPending({ aguardandoPagamento: false });
       if (tries < maxTries) setTimeout(check, intervalMs);
     } catch (err) {
       console.error("Erro ao buscar inscrição:", err);
