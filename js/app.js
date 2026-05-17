@@ -433,24 +433,11 @@
 
     try {
       const valorTotal = (Number(ev.valor) || 0) * state.quantity;
-      const registration = {
-        eventId: state.eventId,
-        eventSlug: ev.slug || "",
-        eventNome: ev.nome || "",
-        quantidade: state.quantity,
-        valorTotal: valorTotal,
-        valorUnitario: Number(ev.valor) || 0,
-        participantes: participantes,
-        statusPagamento: "pendente",
-        mercadoPagoPreferenceId: "",
-        mercadoPagoPaymentId: "",
-        createdAt: firebase.firestore.FieldValue.serverTimestamp(),
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      };
 
-      const ref = await db.collection("registrations").add(registration);
-
-      // Chama backend para criar preferência no MP
+      // IMPORTANTE: NÃO salvamos nada no Firestore aqui. A inscrição
+      // definitiva é criada pelo webhook quando o Mercado Pago confirma
+      // o pagamento. Aqui só enviamos os dados pro backend criar a
+      // preferência e redirecionamos pro checkout.
       const apiUrl = (apiBaseUrl ? apiBaseUrl.replace(/\/$/, "") : "") + "/api/criar-preferencia";
 
       const resp = await fetch(apiUrl, {
@@ -458,9 +445,12 @@
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           eventId: state.eventId,
-          registrationId: ref.id,
+          eventSlug: ev.slug || "",
+          eventNome: ev.nome || "",
           quantidade: state.quantity,
           valorTotal: valorTotal,
+          valorUnitario: Number(ev.valor) || 0,
+          participantes: participantes,
           titulo: `Inscrição — ${ev.nome || "Evento"}`,
           descricao: `${state.quantity} inscrição(ões)`,
           payer: {
@@ -481,13 +471,6 @@
         throw new Error("API não retornou link de pagamento.");
       }
 
-      // Salva o preferenceId no registration
-      await db.collection("registrations").doc(ref.id).update({
-        mercadoPagoPreferenceId: data.id || "",
-        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
-      });
-
-      // Redireciona
       window.location.href = data.init_point || data.sandbox_init_point;
     } catch (err) {
       console.error(err);

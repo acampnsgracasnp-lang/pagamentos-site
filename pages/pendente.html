@@ -177,7 +177,11 @@
   function check() {
     tries++;
     db.collection("registrations").doc(regId).get().then(snap => {
-      if (!snap.exists) return;
+      if (!snap.exists) {
+        // Webhook pode ainda não ter materializado o registro — segue tentando.
+        if (tries < maxTries) setTimeout(check, 3000);
+        return;
+      }
       const st = String(snap.data().statusPagamento || "").toLowerCase();
       if (st === "pago") {
         /* Pagamento confirmado: redireciona para sucesso (onde está a mensagem de boas-vindas) */

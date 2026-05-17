@@ -107,14 +107,19 @@ service cloud.firestore {
     }
 
     // ----- registrations
-    // Qualquer um pode CRIAR sua inscrição (pendente).
-    // Somente admin pode listar todas / editar / excluir.
-    // O webhook do MP usa Service Account (admin SDK) → bypass das regras.
+    // O frontend NUNCA escreve aqui. A inscrição definitiva é criada
+    // pelo webhook (admin SDK → bypass das regras) quando o pagamento
+    // é confirmado pelo Mercado Pago. Somente admin pode ler/alterar.
     match /registrations/{regId} {
-      allow create: if request.resource.data.statusPagamento == 'pendente'
-                    && request.resource.data.valorTotal is number
-                    && request.resource.data.valorTotal > 0;
-      allow read, update, delete: if isAdmin();
+      allow create, update, delete: if isAdmin();
+      allow read: if isAdmin();
+    }
+
+    // ----- pending_checkouts
+    // Coleção temporária com os dados do checkout em curso. Escrita
+    // apenas pelo backend (admin SDK). Nenhum cliente lê/escreve.
+    match /pending_checkouts/{id} {
+      allow read, write: if false;
     }
 
     // ----- payments (log)
@@ -267,16 +272,18 @@ Se você abrir `/mulheres` **sem** `?evento=...`, o sistema carrega o evento pad
 1. Usuário abre `/mulheres` (ou `/mulheres?evento=slug`) → carrega o evento do Firestore.
 2. Preenche quantidade + dados de cada participante (com tamanho de camiseta, se exigido).
 3. Clica em **Continuar para pagamento**:
-   - Cria a `registration` no Firestore com `statusPagamento: "pendente"`.
-   - Chama `/api/criar-preferencia` (Vercel).
+   - O frontend envia os dados para `/api/criar-preferencia` — **nada é salvo em `registrations` ainda**.
+   - O backend valida vagas, grava os dados em `pending_checkouts/<id>` e cria a preferência no MP usando esse `id` como `external_reference`.
    - Redireciona o usuário para o **Checkout do Mercado Pago**.
-4. Após o pagamento, o usuário volta para `/sucesso`, `/pendente` ou `/erro` (todos com `?registrationId=...`).
-5. Em paralelo, o Mercado Pago chama `/api/webhook-mercadopago`:
-   - Consulta o pagamento.
-   - Atualiza `registrations[*].statusPagamento`.
-   - Se aprovado, **incrementa `ingressosVendidos`** do evento (em transação atômica).
+4. O Mercado Pago chama `/api/webhook-mercadopago`:
+   - Na primeira notificação (pendente ou aprovado), cria o documento em `registrations/<id>` a partir do `pending_checkouts/<id>` — id idêntico garante idempotência.
+   - Atualiza `statusPagamento` conforme o estado do pagamento.
+   - Se aprovado pela primeira vez, **incrementa `ingressosVendidos`** do evento (em transação atômica).
    - Salva um log na coleção `payments`.
+5. Após o pagamento, o usuário volta para `/sucesso`, `/pendente` ou `/erro` (todos com `?registrationId=...`).
 
+> ✅ Inscrição só aparece no painel admin **depois** que o MP envia a primeira notificação para o pagamento. Cliques no formulário que não chegam ao checkout não poluem o banco.
+>
 > ✅ A contagem de vagas só é incrementada **após o pagamento ser aprovado**. Isso evita marcar vagas para inscrições que ficaram pendentes ou foram canceladas.
 
 ---

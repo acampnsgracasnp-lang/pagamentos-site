@@ -3,42 +3,74 @@
    ------------------------------------------------------------
    Vercel Function (Node.js runtime).
 
-   Cria uma preferência de pagamento no Mercado Pago e retorna
-   o init_point para o frontend redirecionar o usuário.
+   FLUXO:
+     1. Recebe dados completos da inscrição (participantes incluso).
+     2. Valida vagas/evento ativo no Firestore (server-side).
+     3. Salva os dados em /pending_checkouts (NÃO em /registrations).
+     4. Cria a preferência no Mercado Pago usando o id do
+        pending_checkout como external_reference.
+     5. Retorna init_point para o frontend redirecionar.
 
-   VARIÁVEIS DE AMBIENTE OBRIGATÓRIAS (Vercel → Settings → Environment Variables):
-     - MERCADO_PAGO_ACCESS_TOKEN   (Access Token de Produção do MP)
-     - PUBLIC_SITE_URL             (URL pública do frontend — ex.: https://seu-site.github.io/pagamentos-site)
-     - API_BASE_URL                (URL do backend — ex.: https://seu-projeto.vercel.app)
+   A inscrição definitiva (documento em /registrations) só é criada
+   pelo webhook quando o pagamento é confirmado (ou pelo menos quando
+   o Mercado Pago envia a primeira notificação para o pedido).
+
+   VARIÁVEIS DE AMBIENTE OBRIGATÓRIAS:
+     - MERCADO_PAGO_ACCESS_TOKEN
+     - PUBLIC_SITE_URL
+     - API_BASE_URL
+     - FIREBASE_SERVICE_ACCOUNT
+     - FIREBASE_PROJECT_ID (opcional)
 
    OPCIONAL:
-     - MERCADO_PAGO_NOTIFICATION_URL  (sobrescreve a URL do webhook)
-
-   BODY ESPERADO (POST JSON):
-     {
-       "eventId":        "string",
-       "registrationId": "string",
-       "quantidade":     1,
-       "valorTotal":     120,
-       "titulo":         "string",
-       "descricao":      "string",
-       "payer":          { "name": "...", "phone": "..." }
-     }
-
-   RETORNO:
-     { id, init_point, sandbox_init_point }
+     - MERCADO_PAGO_NOTIFICATION_URL
    ============================================================ */
 
+const admin = require("firebase-admin");
+
+function initFirebase() {
+  if (admin.apps.length) return admin.app();
+  const raw = process.env.FIREBASE_SERVICE_ACCOUNT;
+  if (!raw) throw new Error("FIREBASE_SERVICE_ACCOUNT não configurado.");
+  let serviceAccount;
+  try { serviceAccount = JSON.parse(raw); }
+  catch { throw new Error("FIREBASE_SERVICE_ACCOUNT precisa ser JSON válido em uma única linha."); }
+  if (serviceAccount.private_key && serviceAccount.private_key.includes("\\n")) {
+    serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, "\n");
+  }
+  return admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+    projectId: process.env.FIREBASE_PROJECT_ID || serviceAccount.project_id
+  });
+}
+
+function sanitizeParticipantes(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(p => {
+    const desejaCamiseta =
+      p && p.desejaCamiseta === true ? true :
+      p && p.desejaCamiseta === false ? false : null;
+    const tamanho = String((p && p.tamanhoCamiseta) || "").trim();
+    return {
+      nome: String((p && p.nome) || "").trim(),
+      email: String((p && p.email) || "").trim(),
+      telefone: String((p && p.telefone) || "").trim(),
+      cidade: String((p && p.cidade) || "").trim(),
+      comunidade: String((p && p.comunidade) || "").trim(),
+      pastoral: String((p && p.pastoral) || "").trim(),
+      endereco: String((p && p.endereco) || "").trim(),
+      desejaCamiseta: desejaCamiseta,
+      tamanhoCamiseta: desejaCamiseta === false ? "" : tamanho
+    };
+  });
+}
+
 module.exports = async function handler(req, res) {
-  // CORS — libera chamadas do frontend (GitHub Pages, etc.)
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    res.status(204).end();
-    return;
-  }
+  if (req.method === "OPTIONS") { res.status(204).end(); return; }
   if (req.method !== "POST") {
     res.status(405).json({ error: "Método não permitido. Use POST." });
     return;
@@ -46,27 +78,10 @@ module.exports = async function handler(req, res) {
 
   const ACCESS_TOKEN = (process.env.MERCADO_PAGO_ACCESS_TOKEN || "").trim();
   if (!ACCESS_TOKEN) {
-    // Diagnóstico: lista NOMES (sem valores) de envs relacionadas para identificar
-    // typos, espaços ou ambiente errado na Vercel.
-    const mpVarNames = Object.keys(process.env)
-      .filter((k) => /MERCADO|MP_|PAGO|ACCESS_TOKEN/i.test(k))
-      .sort();
-    console.error("[criar-preferencia] MERCADO_PAGO_ACCESS_TOKEN ausente.", {
-      mpVarNames,
-      vercelEnv: process.env.VERCEL_ENV,
-      region: process.env.VERCEL_REGION
-    });
-    res.status(500).json({
-      error: "MERCADO_PAGO_ACCESS_TOKEN não configurado nas variáveis de ambiente da Vercel.",
-      diag: {
-        mpVarNames,
-        vercelEnv: process.env.VERCEL_ENV || null
-      }
-    });
+    res.status(500).json({ error: "MERCADO_PAGO_ACCESS_TOKEN não configurado." });
     return;
   }
 
-  // Vercel já parseia JSON automaticamente quando Content-Type: application/json
   let body = req.body;
   if (typeof body === "string") {
     try { body = JSON.parse(body); } catch { body = {}; }
@@ -75,21 +90,19 @@ module.exports = async function handler(req, res) {
 
   const {
     eventId,
-    registrationId,
+    eventSlug,
+    eventNome,
     quantidade,
     valorTotal,
+    valorUnitario,
+    participantes,
     titulo,
     descricao,
     payer
   } = body;
 
-  // VALIDAÇÕES
   if (!eventId || typeof eventId !== "string") {
     res.status(400).json({ error: "eventId é obrigatório." });
-    return;
-  }
-  if (!registrationId || typeof registrationId !== "string") {
-    res.status(400).json({ error: "registrationId é obrigatório." });
     return;
   }
   const qtd = Number(quantidade);
@@ -102,30 +115,109 @@ module.exports = async function handler(req, res) {
     res.status(400).json({ error: "valorTotal inválido." });
     return;
   }
-
-  // URLs de retorno e notificação
-  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL || "").replace(/\/$/, "");
-  const API_BASE_URL = (process.env.API_BASE_URL || "").replace(/\/$/, "");
-
-  if (!PUBLIC_SITE_URL) {
-    res.status(500).json({ error: "PUBLIC_SITE_URL não configurado." });
+  const sanitized = sanitizeParticipantes(participantes);
+  if (sanitized.length !== qtd) {
+    res.status(400).json({ error: "Número de participantes não confere com a quantidade." });
+    return;
+  }
+  for (let i = 0; i < sanitized.length; i++) {
+    if (!sanitized[i].nome || sanitized[i].nome.length < 3) {
+      res.status(400).json({ error: `Participante ${i + 1}: nome inválido.` });
+      return;
+    }
+    const tel = sanitized[i].telefone.replace(/\D/g, "");
+    if (tel.length < 10) {
+      res.status(400).json({ error: `Participante ${i + 1}: telefone inválido.` });
+      return;
+    }
+  }
+  const emailPrincipal = sanitized[0].email;
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailPrincipal)) {
+    res.status(400).json({ error: "E-mail do responsável inválido." });
     return;
   }
 
+  let db;
+  try {
+    initFirebase();
+    db = admin.firestore();
+  } catch (err) {
+    console.error("Firebase init falhou:", err);
+    res.status(500).json({ error: "Falha ao inicializar Firebase.", message: err.message });
+    return;
+  }
+
+  // Validação server-side de evento + vagas
+  let evento;
+  try {
+    const evSnap = await db.collection("events").doc(eventId).get();
+    if (!evSnap.exists) {
+      res.status(404).json({ error: "Evento não encontrado." });
+      return;
+    }
+    evento = evSnap.data();
+  } catch (err) {
+    console.error("Erro ao ler evento:", err);
+    res.status(500).json({ error: "Erro ao consultar evento.", message: err.message });
+    return;
+  }
+
+  if (!evento.ativo) {
+    res.status(400).json({ error: "Inscrições encerradas para este evento." });
+    return;
+  }
+  const limite = Number(evento.limiteIngressos) || 0;
+  const vendidos = Number(evento.ingressosVendidos) || 0;
+  const restantes = Math.max(0, limite - vendidos);
+  if (limite > 0 && qtd > restantes) {
+    res.status(400).json({ error: `Apenas ${restantes} vaga(s) disponível(is).` });
+    return;
+  }
+
+  // Cria pending_checkout (NÃO é uma inscrição — só dados temporários até o pagamento)
+  const checkoutRef = db.collection("pending_checkouts").doc();
+  const checkoutId = checkoutRef.id;
+
+  const pendingData = {
+    eventId,
+    eventSlug: typeof eventSlug === "string" ? eventSlug : (evento.slug || ""),
+    eventNome: typeof eventNome === "string" ? eventNome : (evento.nome || ""),
+    quantidade: qtd,
+    valorTotal: valor,
+    valorUnitario: Number(valorUnitario) || (Number(evento.valor) || 0),
+    participantes: sanitized,
+    status: "aguardando",
+    preferenceId: "",
+    createdAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    await checkoutRef.set(pendingData);
+  } catch (err) {
+    console.error("Erro ao salvar pending_checkout:", err);
+    res.status(500).json({ error: "Falha ao iniciar checkout.", message: err.message });
+    return;
+  }
+
+  // URLs MP
+  const PUBLIC_SITE_URL = (process.env.PUBLIC_SITE_URL || "").replace(/\/$/, "");
+  const API_BASE_URL = (process.env.API_BASE_URL || "").replace(/\/$/, "");
+  if (!PUBLIC_SITE_URL) {
+    await checkoutRef.delete().catch(() => {});
+    res.status(500).json({ error: "PUBLIC_SITE_URL não configurado." });
+    return;
+  }
   const notificationUrl =
     process.env.MERCADO_PAGO_NOTIFICATION_URL ||
     (API_BASE_URL ? `${API_BASE_URL}/api/webhook-mercadopago` : "");
 
-  // Monta o body da preferência (Checkout Pro)
-  const tituloFinal = (titulo && String(titulo).slice(0, 250)) || "Inscrição em evento";
+  const tituloFinal = (titulo && String(titulo).slice(0, 250)) || `Inscrição — ${pendingData.eventNome || "Evento"}`;
   const descricaoFinal = (descricao && String(descricao).slice(0, 600)) || `${qtd} inscrição(ões)`;
 
-  // Para evitar problemas de arredondamento, usamos 1 item com qty=1 e
-  // unit_price = valorTotal. (O detalhamento de qty já está na inscrição.)
   const preferenceBody = {
     items: [
       {
-        id: registrationId,
+        id: checkoutId,
         title: tituloFinal,
         description: descricaoFinal,
         category_id: "tickets",
@@ -134,23 +226,19 @@ module.exports = async function handler(req, res) {
         unit_price: Math.round(valor * 100) / 100
       }
     ],
-    external_reference: registrationId,
+    external_reference: checkoutId,
     metadata: {
-      eventId: eventId,
-      registrationId: registrationId,
+      pending_checkout_id: checkoutId,
+      event_id: eventId,
       quantidade: qtd
     },
     back_urls: {
-      success: `${PUBLIC_SITE_URL}/sucesso?registrationId=${encodeURIComponent(registrationId)}`,
-      pending: `${PUBLIC_SITE_URL}/pendente?registrationId=${encodeURIComponent(registrationId)}`,
-      failure: `${PUBLIC_SITE_URL}/erro?registrationId=${encodeURIComponent(registrationId)}`
+      success: `${PUBLIC_SITE_URL}/sucesso?registrationId=${encodeURIComponent(checkoutId)}`,
+      pending: `${PUBLIC_SITE_URL}/pendente?registrationId=${encodeURIComponent(checkoutId)}`,
+      failure: `${PUBLIC_SITE_URL}/erro?registrationId=${encodeURIComponent(checkoutId)}`
     },
     auto_return: "approved",
     statement_descriptor: "EVENTO",
-    // Métodos de pagamento — Checkout Pro com guest checkout ("Sem conta Mercado Pago").
-    // PIX corresponde ao type "bank_transfer" e NÃO pode ser excluído.
-    // Cartão de crédito = "credit_card"; cartão de débito = "debit_card".
-    // Excluímos apenas boleto ("ticket") e caixa eletrônico ("atm").
     payment_methods: {
       excluded_payment_methods: [],
       excluded_payment_types: [
@@ -195,8 +283,7 @@ module.exports = async function handler(req, res) {
       headers: {
         "Authorization": `Bearer ${ACCESS_TOKEN}`,
         "Content-Type": "application/json",
-        // Idempotência: evita criar 2 preferências iguais se o frontend reenviar
-        "X-Idempotency-Key": `${registrationId}-${Date.now()}`
+        "X-Idempotency-Key": `${checkoutId}-${Date.now()}`
       },
       body: JSON.stringify(preferenceBody)
     });
@@ -207,6 +294,7 @@ module.exports = async function handler(req, res) {
 
     if (!mpResp.ok) {
       console.error("Erro MP:", mpResp.status, data);
+      await checkoutRef.delete().catch(() => {});
       res.status(502).json({
         error: "Falha ao criar preferência no Mercado Pago.",
         details: data
@@ -214,13 +302,21 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    // Salva o preferenceId no pending_checkout (útil para reconciliação)
+    await checkoutRef.update({
+      preferenceId: data.id || "",
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    }).catch(err => console.warn("Falha ao salvar preferenceId:", err));
+
     res.status(200).json({
       id: data.id,
       init_point: data.init_point,
-      sandbox_init_point: data.sandbox_init_point
+      sandbox_init_point: data.sandbox_init_point,
+      pendingCheckoutId: checkoutId
     });
   } catch (err) {
     console.error("Exceção criar-preferencia:", err);
+    await checkoutRef.delete().catch(() => {});
     res.status(500).json({ error: "Erro interno.", message: err.message });
   }
 };

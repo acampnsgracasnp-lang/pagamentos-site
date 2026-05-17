@@ -764,7 +764,14 @@
     try {
       const snap = await db.collection("registrations").doc(regId).get();
       if (!snap.exists) {
-        renderNotFound();
+        // O webhook pode ainda não ter materializado a inscrição.
+        // Mantém o estado "aguardando" e segue tentando até maxTries.
+        renderPending();
+        if (tries < maxTries) {
+          setTimeout(check, intervalMs);
+        } else {
+          renderNotFound();
+        }
         return;
       }
       const reg = snap.data() || {};
