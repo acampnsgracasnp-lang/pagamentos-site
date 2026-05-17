@@ -962,6 +962,125 @@
     font-size: 15px;
     margin-bottom: 4px;
   }
+
+  /* =========================================================
+     MODAL — escolha do método de pagamento (Pix / Cartão)
+     ========================================================= */
+  .pay-modal{
+    position: fixed; inset: 0; z-index: 999;
+    display: grid; place-items: center;
+    padding: 20px;
+  }
+  .pay-modal.hidden{ display: none; }
+  .pay-modal-backdrop{
+    position: absolute; inset: 0;
+    background: rgba(91,24,48,.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: payFadeIn .2s ease-out;
+  }
+  .pay-modal-card{
+    position: relative;
+    background: #fff;
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    animation: paySlideUp .3s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes payFadeIn{ from{ opacity:0;} to{ opacity:1;} }
+  @keyframes paySlideUp{
+    from{ transform: translateY(20px); opacity:0;}
+    to{ transform: translateY(0); opacity:1;}
+  }
+  .pay-modal-close{
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: none;
+    font-size: 26px; line-height: 1;
+    color: var(--muted);
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    transition: background .15s, color .15s;
+  }
+  .pay-modal-close:hover{ background: var(--blush-soft); color: var(--wine); }
+  .pay-modal-head{ text-align: center; margin-bottom: 22px; }
+  .pay-eyebrow{
+    font-size: 11.5px; letter-spacing: .26em;
+    text-transform: uppercase; color: var(--rose);
+    font-weight: 700; margin-bottom: 6px;
+  }
+  .pay-modal-head h3{
+    font-family: var(--font-serif); font-style: italic;
+    font-weight: 400;
+    font-size: 26px; color: var(--wine);
+    margin: 0 0 12px;
+  }
+  .pay-total{
+    font-weight: 700; font-size: 22px;
+    color: var(--rose-deep);
+  }
+  .pay-modal-body{ display: flex; flex-direction: column; gap: 12px; }
+  .pay-modal-body.hidden{ display: none; }
+  .pay-option{
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 16px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .15s, box-shadow .15s;
+    text-align: left;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .pay-option:hover:not(:disabled){
+    border-color: var(--rose);
+    background: var(--blush-soft);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .pay-option:disabled{ opacity: .55; cursor: wait; }
+  .pay-option-icon{
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .pay-option-body{ flex: 1; }
+  .pay-option-title{ font-weight: 700; font-size: 16px; }
+  .pay-option-sub{ font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .pay-option-arrow{ font-size: 22px; color: var(--rose); font-weight: 300; }
+  .pay-modal-loading{
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 28px 14px;
+    color: var(--muted); font-size: 14.5px;
+  }
+  .pay-modal-loading.hidden{ display: none; }
+  .pay-spinner-sm{
+    width: 22px; height: 22px;
+    border: 2.5px solid var(--blush);
+    border-top-color: var(--rose);
+    border-radius: 50%;
+    animation: paySpin 1s linear infinite;
+  }
+  @keyframes paySpin{ to{ transform: rotate(360deg);} }
+  .pay-modal-error{
+    background: #fce8ec; color: var(--wine);
+    border-left: 3px solid var(--rose);
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    margin-top: 14px;
+  }
+  .pay-modal-error.hidden{ display: none; }
+  .pay-modal-foot{
+    display: flex; align-items: center; justify-content: center;
+    gap: 7px;
+    margin-top: 22px;
+    font-size: 12px;
+    color: var(--muted);
+  }
 </style>
 </head>
 <body>
@@ -1327,6 +1446,62 @@
   <div>1º Encontro de Mulheres — Movidas pelo Espírito · © 2026</div>
 </footer>
 
+<!-- ====================================================
+     MODAL — escolha do método de pagamento (Pix ou Cartão)
+     ==================================================== -->
+<div id="pay-modal" class="pay-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pay-modal-title" aria-hidden="true">
+  <div class="pay-modal-backdrop" id="pay-modal-backdrop"></div>
+  <div class="pay-modal-card">
+    <button type="button" class="pay-modal-close" id="pay-modal-close" aria-label="Fechar">×</button>
+
+    <div class="pay-modal-head">
+      <div class="pay-eyebrow">Última etapa</div>
+      <h3 id="pay-modal-title">Como você quer pagar?</h3>
+      <div class="pay-total" id="pay-modal-total">R$ 0,00</div>
+    </div>
+
+    <div class="pay-modal-body" id="pay-modal-body">
+      <button type="button" class="pay-option" id="pay-pix" data-method="pix">
+        <div class="pay-option-icon" style="background: linear-gradient(135deg, #2eb872, #1f7a4d);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2 L22 12 L12 22 L2 12 Z"/><path d="M8 8 L16 16"/><path d="M16 8 L8 16"/>
+          </svg>
+        </div>
+        <div class="pay-option-body">
+          <div class="pay-option-title">PIX</div>
+          <div class="pay-option-sub">QR Code instantâneo, sem sair desta página</div>
+        </div>
+        <div class="pay-option-arrow">→</div>
+      </button>
+
+      <button type="button" class="pay-option" id="pay-cartao" data-method="cartao">
+        <div class="pay-option-icon" style="background: linear-gradient(135deg, var(--rose), var(--rose-deep));">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+        </div>
+        <div class="pay-option-body">
+          <div class="pay-option-title">Cartão de crédito ou débito</div>
+          <div class="pay-option-sub">Em até 12 parcelas, processado pelo Mercado Pago</div>
+        </div>
+        <div class="pay-option-arrow">→</div>
+      </button>
+    </div>
+
+    <div class="pay-modal-loading hidden" id="pay-modal-loading">
+      <div class="pay-spinner-sm"></div>
+      <span id="pay-modal-loading-text">Processando…</span>
+    </div>
+
+    <div class="pay-modal-error hidden" id="pay-modal-error"></div>
+
+    <div class="pay-modal-foot">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Pagamento processado com segurança pelo Mercado Pago
+    </div>
+  </div>
+</div>
+
 <!-- =========================================================
      SCRIPTS — Firebase + lógica do formulário
      Compatível com o backend do pagamentos-site (api/criar-preferencia)
@@ -1425,22 +1600,33 @@
         const idadeMs = Date.now() - (Number(last.ts) || 0);
         // Janela de 30 minutos — passa disso, considera fluxo abandonado.
         if (last && last.id && idadeMs < 30 * 60 * 1000) {
+          // Para Pix iniciado mas ainda não pago, registration ainda não
+          // existe — manda direto para /sucesso, que vai mostrar o QR
+          // (lido do localStorage) e fazer polling até virar "pago".
+          const pixData = localStorage.getItem("pix:" + last.id);
           const snap = await db.collection("registrations").doc(last.id).get();
           if (snap.exists) {
             const st = String(snap.data().statusPagamento || "").toLowerCase();
             if (st === "pago") {
               localStorage.removeItem("lastCheckout");
+              localStorage.removeItem("pix:" + last.id);
               location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
               return;
             }
             if (st === "pendente") {
-              location.replace("/pendente?registrationId=" + encodeURIComponent(last.id));
+              // /sucesso lida com pendente (mostra QR para Pix, "aguardando" para cartão)
+              location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
               return;
             }
             if (st === "recusado" || st === "cancelado") {
               localStorage.removeItem("lastCheckout");
+              localStorage.removeItem("pix:" + last.id);
               // Deixa seguir o fluxo normal — usuária pode tentar de novo.
             }
+          } else if (pixData) {
+            // Pix gerado, ainda nem chegou notificação do MP — volta pro QR
+            location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
+            return;
           }
         } else if (idadeMs >= 30 * 60 * 1000) {
           localStorage.removeItem("lastCheckout");
@@ -1698,8 +1884,147 @@
   }
 
   /* =========================================================
-     SUBMIT
+     SUBMIT — valida o formulário e abre o modal de pagamento.
+     O modal tem dois botões (Pix / Cartão) e cada um dispara
+     a chamada à API correspondente.
      ========================================================= */
+
+  // Contexto do checkout atual (preenchido pelo submit, lido pelos
+  // handlers do modal). Reseta a cada nova tentativa.
+  let payContext = null;
+
+  function fmtBRLPretty(n) {
+    return "R$ " + Number(n).toFixed(2).replace(".", ",");
+  }
+
+  function openPayModal(ctx) {
+    payContext = ctx;
+    $("pay-modal-total").textContent = fmtBRLPretty(ctx.total);
+    $("pay-modal-body").classList.remove("hidden");
+    $("pay-modal-loading").classList.add("hidden");
+    $("pay-modal-error").classList.add("hidden");
+    $("pay-pix").disabled = false;
+    $("pay-cartao").disabled = false;
+    const modal = $("pay-modal");
+    modal.classList.remove("hidden");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closePayModal() {
+    const modal = $("pay-modal");
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    $("btn-submit").disabled = false;
+    $("btn-submit-text").textContent = "Continuar para o pagamento";
+  }
+
+  function setModalLoading(text) {
+    $("pay-modal-body").classList.add("hidden");
+    $("pay-modal-error").classList.add("hidden");
+    $("pay-modal-loading").classList.remove("hidden");
+    $("pay-modal-loading-text").textContent = text;
+  }
+
+  function setModalError(msg) {
+    $("pay-modal-loading").classList.add("hidden");
+    $("pay-modal-body").classList.remove("hidden");
+    $("pay-pix").disabled = false;
+    $("pay-cartao").disabled = false;
+    const errEl = $("pay-modal-error");
+    errEl.textContent = msg;
+    errEl.classList.remove("hidden");
+  }
+
+  $("pay-modal-close").addEventListener("click", closePayModal);
+  $("pay-modal-backdrop").addEventListener("click", closePayModal);
+
+  async function parseApiError(resp) {
+    const text = await resp.text();
+    try {
+      const j = JSON.parse(text);
+      return j.error || j.message || (j.details && (j.details.message || JSON.stringify(j.details))) || text.slice(0, 200);
+    } catch {
+      return text.slice(0, 200) || ("HTTP " + resp.status);
+    }
+  }
+
+  // PIX: chama /api/criar-pix, guarda o QR no localStorage e redireciona
+  // pra /sucesso (que mostra o QR + faz polling no Firestore).
+  $("pay-pix").addEventListener("click", async () => {
+    if (!payContext) return;
+    setModalLoading("Gerando seu QR Code Pix…");
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/criar-pix`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payContext.payload)
+      });
+      if (!resp.ok) throw new Error(await parseApiError(resp));
+      const data = await resp.json();
+      if (!data.qrCodeBase64 || !data.qrCodeText || !data.pendingCheckoutId) {
+        throw new Error("Resposta inválida do servidor Pix.");
+      }
+      // Guarda QR no localStorage (sobrevive a refresh por 30 min)
+      try {
+        localStorage.setItem("pix:" + data.pendingCheckoutId, JSON.stringify({
+          qrCodeBase64: data.qrCodeBase64,
+          qrCodeText:   data.qrCodeText,
+          ticketUrl:    data.ticketUrl || "",
+          paymentId:    data.paymentId,
+          expiresAt:    data.expiresAt,
+          valor:        data.valor,
+          eventNome:    payContext.eventNome,
+          ts:           Date.now()
+        }));
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id:     data.pendingCheckoutId,
+          ts:     Date.now(),
+          slug:   eventData.slug || "",
+          metodo: "pix"
+        }));
+      } catch (err) {
+        console.warn("localStorage indisponível:", err);
+      }
+      location.replace("/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId));
+    } catch (err) {
+      console.error(err);
+      setModalError("Não foi possível gerar o Pix: " + err.message);
+    }
+  });
+
+  // CARTÃO: chama /api/criar-preferencia (Checkout Pro só com cartão)
+  // e redireciona para o init_point. Para cartão o auto_return funciona —
+  // o MP volta sozinho para /sucesso quando o pagamento for aprovado.
+  $("pay-cartao").addEventListener("click", async () => {
+    if (!payContext) return;
+    setModalLoading("Abrindo o pagamento com cartão…");
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/criar-preferencia`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payContext.payload)
+      });
+      if (!resp.ok) throw new Error(await parseApiError(resp));
+      const data = await resp.json();
+      const checkoutUrl = data.init_point || data.sandbox_init_point;
+      if (!checkoutUrl) throw new Error(data.error || "API não retornou link de pagamento.");
+      try {
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id:     data.pendingCheckoutId || "",
+          ts:     Date.now(),
+          slug:   eventData.slug || "",
+          metodo: "cartao"
+        }));
+      } catch {}
+      location.href = checkoutUrl;
+    } catch (err) {
+      console.error(err);
+      setModalError("Não foi possível iniciar o cartão: " + err.message);
+    }
+  });
+
   $("registration-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const btn = $("btn-submit");
@@ -1735,8 +2060,9 @@
     }
 
     btn.disabled = true;
-    btnTxt.textContent = "Processando…";
+    btnTxt.textContent = "Verificando vagas…";
 
+    let modalAberto = false;
     try {
       if (!db || !eventData.id) {
         alert("Evento não encontrado no Firestore. Crie o evento pelo painel /admin antes de aceitar inscrições.");
@@ -1788,62 +2114,45 @@
       const comCamiseta = participants.filter(p => temCamiseta(p.tamanhoCamiseta)).length;
       const total = qty * base + comCamiseta * precoCam;
 
-      // NÃO criamos nada no Firestore aqui. A inscrição definitiva é criada
-      // pelo webhook quando o Mercado Pago confirma o pagamento.
+      // Payload comum aos dois endpoints. Tanto /api/criar-pix quanto
+      // /api/criar-preferencia esperam os mesmos campos.
+      const payload = {
+        eventId:        eventData.id,
+        eventSlug:      eventData.slug || "",
+        eventNome:      eventData.nome || "",
+        quantidade:     qty,
+        valorTotal:     total,
+        valorUnitario:  base,
+        precoCamiseta:  precoCam,
+        comCamiseta:    comCamiseta,
+        participantes:  participants,
+        titulo:         `Inscrição — ${eventData.nome || "Evento"}`,
+        descricao:      comCamiseta > 0
+                          ? `${qty} inscrição(ões) · ${comCamiseta} com camiseta`
+                          : `${qty} inscrição(ões)`,
+        payer: {
+          name:  participants[0]?.nome     || "",
+          email: participants[0]?.email    || "",
+          phone: participants[0]?.telefone || ""
+        }
+      };
 
-      const resp = await fetch(`${API_BASE_URL}/api/criar-preferencia`, {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({
-          eventId:        eventData.id,
-          eventSlug:      eventData.slug || "",
-          eventNome:      eventData.nome || "",
-          quantidade:     qty,
-          valorTotal:     total,
-          valorUnitario:  base,
-          precoCamiseta:  precoCam,
-          comCamiseta:    comCamiseta,
-          participantes:  participants,
-          titulo:         `Inscrição — ${eventData.nome || "Evento"}`,
-          descricao:      comCamiseta > 0
-                            ? `${qty} inscrição(ões) · ${comCamiseta} com camiseta`
-                            : `${qty} inscrição(ões)`,
-          payer: {
-            name:  participants[0]?.nome     || "",
-            email: participants[0]?.email    || "",
-            phone: participants[0]?.telefone || ""
-          }
-        })
-      });
-
-      if (!resp.ok) {
-        const errText = await resp.text();
-        throw new Error("Falha ao criar pagamento: " + errText);
-      }
-      const data = await resp.json();
-      if (!data?.init_point && !data?.sandbox_init_point) {
-        throw new Error(data?.error || "API não retornou link de pagamento.");
-      }
-
-      // Salva o checkoutId pra recuperar o fluxo caso o MP não redirecione
-      // de volta (comum em Pix, quando a usuária paga no app do banco e
-      // fecha a aba do MP antes da confirmação).
-      try {
-        localStorage.setItem("lastCheckout", JSON.stringify({
-          id: data.pendingCheckoutId || "",
-          ts: Date.now(),
-          slug: eventData.slug || ""
-        }));
-      } catch {}
-
-      window.location.href = data.init_point || data.sandbox_init_point;
-      return;
+      openPayModal({ total, payload, eventNome: eventData.nome || "" });
+      modalAberto = true;
     } catch (err) {
       console.error(err);
       alert("❌ Algo deu errado: " + err.message);
     } finally {
-      btn.disabled = false;
-      btnTxt.textContent = "Continuar para o pagamento";
+      // Só reseta o botão se o modal NÃO abriu. Se abriu, o close
+      // do modal é quem reseta (ou os handlers Pix/Cartão navegam).
+      if (!modalAberto) {
+        btn.disabled = false;
+        btnTxt.textContent = "Continuar para o pagamento";
+      } else {
+        // Botão fica em estado "consistente" caso o usuário feche o modal:
+        // closePayModal() já chama btn.disabled = false e restaura o texto.
+        btnTxt.textContent = "Continuar para o pagamento";
+      }
     }
   });
 

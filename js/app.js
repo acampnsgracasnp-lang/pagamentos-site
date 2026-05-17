@@ -478,16 +478,6 @@
 
       const successUrl = "/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId || "");
 
-      // Guarda o checkoutUrl em sessionStorage para que /sucesso possa
-      // reabrir o pagamento caso o usuário feche a aba do MP por acidente
-      // ou caso o popup tenha sido bloqueado.
-      try {
-        sessionStorage.setItem(
-          "mp_checkout_" + (data.pendingCheckoutId || ""),
-          checkoutUrl
-        );
-      } catch (_) { /* navegador pode bloquear storage em modo privado */ }
-
       if (mpWindow && !mpWindow.closed) {
         // Checkout MP em nova aba, esta aba já vai pra /sucesso fazer polling.
         // Quando o webhook confirmar o pagamento, /sucesso mostra a mensagem
@@ -495,16 +485,8 @@
         mpWindow.location.href = checkoutUrl;
         window.location.href = successUrl;
       } else {
-        // Popup bloqueado (comum em mobile/Safari).
-        // ANTES: mandávamos a aba atual direto para o MP — o usuário pagava
-        // o Pix e ficava preso em /congrats/instructions/ sem conseguir voltar.
-        // AGORA: mandamos para /sucesso passando o checkoutUrl. /sucesso
-        // mostra um botão "Abrir tela de pagamento" (clique direto do
-        // usuário = sem bloqueio de popup) e já inicia o polling em
-        // paralelo. Quando o webhook confirmar, a tela atualiza sozinha.
-        const fallbackUrl = successUrl +
-          "&checkoutUrl=" + encodeURIComponent(checkoutUrl);
-        window.location.href = fallbackUrl;
+        // Popup bloqueado: fluxo antigo — MP na mesma aba.
+        window.location.href = checkoutUrl;
       }
     } catch (err) {
       if (mpWindow && !mpWindow.closed) mpWindow.close();

@@ -430,6 +430,135 @@
     font-size: 15px;
     margin-bottom: 4px;
   }
+
+  /* =========================================================
+     ESTADO PIX — QR Code dentro do nosso site, sem MP
+     ========================================================= */
+  .pix-hero{
+    margin-top: 24px;
+    background: linear-gradient(180deg, #eaf7ee 0%, #f7fcf9 100%);
+    border: 1px solid #cfe7d6;
+    border-radius: var(--radius-lg);
+    padding: 36px 28px 28px;
+    text-align: center;
+  }
+  .pix-eyebrow{
+    font-size: 11.5px;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--success-deep);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .pix-title{
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(26px, 4vw, 36px);
+    line-height: 1.15;
+    color: var(--wine);
+    margin: 0 0 6px;
+  }
+  .pix-amount{
+    font-weight: 700;
+    font-size: 22px;
+    color: var(--success-deep);
+    margin: 8px 0 18px;
+  }
+  .pix-qr-wrap{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px;
+    display: inline-block;
+    margin-bottom: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .pix-qr-wrap img{
+    display: block;
+    width: 240px; height: 240px;
+    image-rendering: pixelated;
+  }
+  .pix-instructions{
+    text-align: left;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 18px 22px;
+    margin: 0 auto 16px;
+    max-width: 480px;
+    font-size: 14.5px;
+    color: var(--ink);
+  }
+  .pix-instructions ol{
+    margin: 0; padding-left: 22px;
+    line-height: 1.7;
+  }
+  .pix-copy-wrap{
+    display: flex;
+    gap: 8px;
+    align-items: stretch;
+    max-width: 480px;
+    margin: 0 auto 14px;
+  }
+  .pix-copy-input{
+    flex: 1;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: 12.5px;
+    background: var(--paper);
+    color: var(--ink);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .pix-copy-btn{
+    background: linear-gradient(135deg, var(--success), var(--success-deep));
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    padding: 0 18px;
+    font-weight: 700;
+    font-size: 14px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pix-copy-btn:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(31,122,77,.25);
+  }
+  .pix-copy-btn.copied{
+    background: linear-gradient(135deg, var(--gold), #8a6730);
+  }
+  .pix-status{
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 10px 18px;
+    font-size: 13.5px;
+    color: var(--muted);
+    margin-top: 8px;
+  }
+  .pix-status .spinner{
+    width: 16px; height: 16px;
+    margin: 0;
+    border-width: 2px;
+  }
+  .pix-expira{
+    margin-top: 12px;
+    font-size: 12.5px;
+    color: var(--muted);
+  }
+  .pix-expira strong{ color: var(--rose-deep); }
 </style>
 </head>
 <body>
@@ -504,6 +633,48 @@
     </section>
   </div>
 
+  <!-- PIX — QR Code para pagar aqui mesmo -->
+  <div id="pix-state" class="hidden">
+    <section class="pix-hero">
+      <div class="pix-eyebrow">Pague com Pix</div>
+      <h1 class="pix-title">
+        <span>Escaneie o QR Code</span>
+      </h1>
+      <div class="pix-amount" id="pix-amount">R$ 0,00</div>
+
+      <div class="pix-qr-wrap">
+        <img id="pix-qr-img" alt="QR Code Pix" />
+      </div>
+
+      <div class="pix-instructions">
+        <ol>
+          <li>Abra o app do seu banco e escolha <strong>Pix</strong> → <strong>Pagar com QR Code</strong>.</li>
+          <li>Aponte a câmera para o QR Code acima <em>ou</em> use o botão <strong>Copiar código</strong> e cole no app.</li>
+          <li>Confirme o pagamento. Esta página atualiza sozinha quando o Pix cair.</li>
+        </ol>
+      </div>
+
+      <div class="pix-copy-wrap">
+        <div class="pix-copy-input" id="pix-copy-text" title="Código Pix copia-e-cola">—</div>
+        <button type="button" class="pix-copy-btn" id="pix-copy-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="9" y="9" width="13" height="13" rx="2"/>
+            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+          </svg>
+          <span id="pix-copy-btn-text">Copiar código</span>
+        </button>
+      </div>
+
+      <div class="pix-status">
+        <div class="spinner"></div>
+        Aguardando seu pagamento…
+      </div>
+
+      <div class="pix-expira" id="pix-expira"></div>
+      <div class="meta-row" id="pix-meta" style="margin-top:14px"></div>
+    </section>
+  </div>
+
   <!-- PENDING -->
   <div id="pending-state" class="hidden">
     <section class="pending-hero">
@@ -517,28 +688,6 @@
         Se você pagou via PIX, a compensação costuma levar de alguns segundos até alguns minutos.
         Esta página atualiza sozinha — não precisa fazer nada.
       </p>
-
-      <!-- Botão para reabrir o checkout do MP (preenchido pelo JS quando há checkoutUrl).
-           Aparece se: (a) popup foi bloqueado e o usuário veio de /sucesso?...&checkoutUrl=...
-                       (b) usuário fechou a aba do MP por acidente. -->
-      <div id="reopen-checkout-wrap" class="hidden" style="margin-top:28px">
-        <a id="btn-reopen-checkout"
-           href="#"
-           target="_blank"
-           rel="noopener"
-           class="btn btn-back"
-           style="max-width:380px;margin:0 auto;background:linear-gradient(135deg,#009ee3,#005bb5);box-shadow:0 8px 22px rgba(0,158,227,.28)">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M15 3h6v6M10 14L21 3M21 14v7H3V3h7"/>
-          </svg>
-          Abrir tela de pagamento
-        </a>
-        <p style="margin:14px auto 0;max-width:440px;font-size:13.5px;color:var(--muted);font-family:var(--font-serif);font-style:italic">
-          O pagamento abre em outra aba. Esta página confirma sua inscrição
-          assim que o Pix cair — você não precisa voltar manualmente.
-        </p>
-      </div>
-
       <div class="meta-row" id="pending-meta" style="margin-top:24px"></div>
     </section>
   </div>
@@ -637,31 +786,88 @@
 
   const fmtBRL = (n) => "R$ " + Number(n || 0).toFixed(2).replace(".", ",");
 
-  /* Recupera checkoutUrl quando o popup do MP foi bloqueado.
-     Pode vir por:
-       (a) query string  ?checkoutUrl=URL_ENCODED  (vindo do app.js)
-       (b) sessionStorage  mp_checkout_<regId>    (salvo pelo app.js)
-     É usado APENAS para mostrar um botão "Abrir tela de pagamento"
-     nesta página enquanto aguardamos o webhook. NÃO faz redirect
-     automático — o clique tem que ser do usuário pra não cair em
-     bloqueador de popup. */
-  function getCheckoutUrl() {
-    const fromQuery = params.get("checkoutUrl");
-    if (fromQuery) {
-      try { sessionStorage.setItem("mp_checkout_" + regId, fromQuery); } catch(_){}
-      return fromQuery;
-    }
+  function show(stateId) {
+    ["loading-state","pix-state","paid-state","pending-state","error-state","notfound-state"]
+      .forEach(id => $(id).classList.toggle("hidden", id !== stateId));
+  }
+
+  /* Lê dados do Pix salvos pelo mulheres.html no localStorage no momento
+     em que /api/criar-pix retornou. Sobrevive a refresh por 30 min (o
+     mesmo prazo de expiração do Pix no MP). */
+  function loadPixData() {
+    if (!regId) return null;
     try {
-      return sessionStorage.getItem("mp_checkout_" + regId) || "";
-    } catch (_) {
-      return "";
+      const raw = localStorage.getItem("pix:" + regId);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      // Expiração: 30 min do timestamp em que foi gravado
+      const idade = Date.now() - (Number(data.ts) || 0);
+      if (idade > 30 * 60 * 1000) {
+        localStorage.removeItem("pix:" + regId);
+        return null;
+      }
+      return data;
+    } catch {
+      return null;
     }
   }
-  const checkoutUrl = getCheckoutUrl();
 
-  function show(stateId) {
-    ["loading-state","paid-state","pending-state","error-state","notfound-state"]
-      .forEach(id => $(id).classList.toggle("hidden", id !== stateId));
+  function clearPixData() {
+    if (!regId) return;
+    try { localStorage.removeItem("pix:" + regId); } catch {}
+  }
+
+  let pixRendered = false;
+  function renderPix(pix) {
+    show("pix-state");
+    pixRendered = true;
+
+    $("pix-amount").textContent = fmtBRL(pix.valor);
+    $("pix-qr-img").src = "data:image/png;base64," + pix.qrCodeBase64;
+    $("pix-copy-text").textContent = pix.qrCodeText;
+    $("pix-meta").textContent = regId ? ("ID da inscrição: " + regId) : "";
+
+    // Tempo restante até expirar (em minutos)
+    try {
+      const exp = pix.expiresAt ? new Date(pix.expiresAt).getTime() : 0;
+      if (exp) {
+        const restanteMs = exp - Date.now();
+        if (restanteMs > 0) {
+          const min = Math.floor(restanteMs / 60000);
+          $("pix-expira").innerHTML = "Este QR Code expira em <strong>" + min + " min</strong>. Se expirar, gere outro voltando para a página de inscrição.";
+        } else {
+          $("pix-expira").innerHTML = "Este QR Code <strong>já expirou</strong>. Volte para a inscrição e gere outro.";
+        }
+      }
+    } catch {}
+
+    // Botão Copiar (uma vez só — múltiplos cliques não dão problema)
+    const copyBtn = $("pix-copy-btn");
+    const copyTxt = $("pix-copy-btn-text");
+    copyBtn.onclick = async () => {
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(pix.qrCodeText);
+        } else {
+          const ta = document.createElement("textarea");
+          ta.value = pix.qrCodeText;
+          ta.style.position = "absolute"; ta.style.left = "-9999px";
+          document.body.appendChild(ta); ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+        }
+        copyBtn.classList.add("copied");
+        copyTxt.textContent = "Copiado!";
+        showToast("Código Pix copiado");
+        setTimeout(() => {
+          copyBtn.classList.remove("copied");
+          copyTxt.textContent = "Copiar código";
+        }, 2400);
+      } catch (err) {
+        console.error(err);
+        showToast("Não foi possível copiar. Selecione o código e copie manualmente.");
+      }
+    };
   }
 
   function showToast(text) {
@@ -727,9 +933,6 @@
   function renderPaid(reg) {
     show("paid-state");
 
-    // Pagamento confirmado: o checkoutUrl não serve mais — limpa.
-    try { sessionStorage.removeItem("mp_checkout_" + regId); } catch(_){}
-
     const eventoNome = reg.eventNome || "ao nosso evento";
     $("welcome-event-name").textContent = eventoNome;
 
@@ -785,41 +988,16 @@
   function renderPending(opts) {
     show("pending-state");
     $("pending-meta").textContent = regId ? ("ID da inscrição: " + regId) : "";
-
     const hero = document.querySelector("#pending-state .pending-hero");
-    const reopenWrap = $("reopen-checkout-wrap");
-    const reopenBtn  = $("btn-reopen-checkout");
-
-    // Se temos um checkoutUrl disponível (popup foi bloqueado, ou usuário
-    // fechou a aba do MP), oferece um botão para reabrir o pagamento.
-    if (checkoutUrl && reopenWrap && reopenBtn) {
-      reopenBtn.href = checkoutUrl;
-      reopenWrap.classList.remove("hidden");
-    } else if (reopenWrap) {
-      reopenWrap.classList.add("hidden");
-    }
-
     if (hero) {
       const title = hero.querySelector(".confirm-title");
       const sub = hero.querySelector(".confirm-sub");
       const eyebrow = hero.querySelector(".confirm-eyebrow");
-
-      // Caso 1: ainda não temos registro no Firestore E temos checkoutUrl
-      //         → usuário ainda não pagou (ou popup foi bloqueado).
-      //         Mostra um CTA claro para abrir o pagamento.
-      if (opts && opts.aguardandoPagamento && checkoutUrl) {
-        if (eyebrow) eyebrow.textContent = "Quase lá";
-        if (title) title.innerHTML = '<span>Abra o pagamento</span><span class="strong">e finalize seu Pix</span>';
-        if (sub) sub.textContent = "Toque no botão abaixo para abrir a tela de pagamento. Esta página confirma sua inscrição automaticamente assim que o Pix cair.";
-      }
-      // Caso 2: aguardando pagamento mas sem checkoutUrl (fluxo do popup MP separado)
-      else if (opts && opts.aguardandoPagamento) {
+      if (opts && opts.aguardandoPagamento) {
         if (eyebrow) eyebrow.textContent = "Aguardando seu pagamento";
         if (title) title.innerHTML = '<span>Estamos esperando</span><span class="strong">a confirmação do Pix</span>';
         if (sub) sub.textContent = "Finalize o pagamento na aba do Mercado Pago. Assim que cair, esta página atualiza sozinha com sua confirmação e o botão de WhatsApp.";
-      }
-      // Caso 3: já existe registro pendente — webhook chegou mas ainda não compensou
-      else {
+      } else {
         if (eyebrow) eyebrow.textContent = "Aguardando confirmação";
         if (title) title.innerHTML = '<span>Pagamento em</span><span class="strong">processamento</span>';
         if (sub) sub.textContent = "Se você pagou via PIX, a compensação costuma levar de alguns segundos até alguns minutos. Esta página atualiza sozinha — não precisa fazer nada.";
@@ -842,9 +1020,27 @@
     return;
   }
 
+  // Renderiza o QR imediatamente se houver no localStorage (evita
+  // flash de "verificando…" enquanto o primeiro fetch resolve).
+  const pixData = loadPixData();
+  if (pixData) renderPix(pixData);
+
   let tries = 0;
   const maxTries = 600;      // ~30 minutos (Pix pode demorar até a pessoa pagar)
   const intervalMs = 3000;   // 3s entre tentativas
+
+  // Mostra o estado adequado para um pagamento que ainda não foi confirmado.
+  // Se temos QR Code no localStorage → estado Pix.
+  // Senão → estado "aguardando confirmação" genérico.
+  function renderAwaiting(opts) {
+    if (pixRendered) return; // já está mostrando o QR; mantém
+    const pix = loadPixData();
+    if (pix) {
+      renderPix(pix);
+    } else {
+      renderPending(opts);
+    }
+  }
 
   async function check() {
     tries++;
@@ -853,10 +1049,10 @@
       if (!snap.exists) {
         // Registration ainda não existe → webhook não disparou ainda,
         // provavelmente porque a participante ainda não pagou.
-        renderPending({ aguardandoPagamento: true });
+        renderAwaiting({ aguardandoPagamento: true });
         if (tries < maxTries) {
           setTimeout(check, intervalMs);
-        } else {
+        } else if (!pixRendered) {
           renderNotFound();
         }
         return;
@@ -865,21 +1061,26 @@
       const st = String(reg.statusPagamento || "").toLowerCase();
 
       if (st === "pago") {
+        clearPixData();
+        try { localStorage.removeItem("lastCheckout"); } catch {}
         renderPaid(reg);
         return;
       }
       if (st === "recusado" || st === "cancelado") {
+        clearPixData();
         renderError();
         return;
       }
       // Existe mas está "pendente" → MP já notificou mas ainda não compensou.
-      renderPending({ aguardandoPagamento: false });
+      // Para Pix, ainda assim mostramos o QR (a pessoa pode estar esperando
+      // a compensação após escanear o código).
+      renderAwaiting({ aguardandoPagamento: false });
       if (tries < maxTries) setTimeout(check, intervalMs);
     } catch (err) {
       console.error("Erro ao buscar inscrição:", err);
       if (tries < maxTries) {
         setTimeout(check, intervalMs);
-      } else {
+      } else if (!pixRendered) {
         renderNotFound();
       }
     }
