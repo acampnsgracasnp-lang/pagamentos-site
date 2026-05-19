@@ -592,7 +592,7 @@
       $("#ev-banner").value = ev.bannerUrl || "";
       $("#ev-ativo").value = String(!!ev.ativo);
       $("#ev-exige-camiseta").value = String(!!ev.exigeCamiseta);
-      $("#ev-tamanhos").value = (ev.tamanhosCamiseta || ["P","M","G","GG","XG","XXG"]).join(", ");
+      $("#ev-tamanhos").value = (ev.tamanhosCamiseta || ["PP","P","M","G","GG","XG","XXG"]).join(", ");
       if (grid) {
         grid.dataset.estoque = JSON.stringify(ev.estoqueCamisetas || {});
         grid.dataset.vendido = JSON.stringify(ev.vendidoCamisetas || {});
@@ -603,7 +603,7 @@
       $("#ev-vendidos").value = 0;
       $("#ev-ativo").value = "true";
       $("#ev-exige-camiseta").value = "true";
-      $("#ev-tamanhos").value = "P, M, G, GG, XG, XXG";
+      $("#ev-tamanhos").value = "PP, P, M, G, GG, XG, XXG";
     }
 
     renderEstoqueGrid();
@@ -667,7 +667,7 @@
       local: $("#ev-local").value.trim(),
       bannerUrl: $("#ev-banner").value.trim(),
       exigeCamiseta: exigeCamiseta,
-      tamanhosCamiseta: tamanhos.length ? tamanhos : ["P","M","G","GG","XG","XXG"],
+      tamanhosCamiseta: tamanhos.length ? tamanhos : ["PP","P","M","G","GG","XG","XXG"],
       estoqueCamisetas: estoqueCamisetas,
       vendidoCamisetas: vendidoLimpo,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
@@ -786,12 +786,16 @@
     currentRegs.forEach(r => {
       const tr = document.createElement("tr");
       const principal = (r.participantes && r.participantes[0]) || {};
+      const tamanhosTxt = (r.participantes || [])
+        .map(p => !p.tamanhoCamiseta || isNoShirtLabel(p.tamanhoCamiseta) ? "—" : p.tamanhoCamiseta)
+        .join(", ") || "—";
       tr.innerHTML = `
         <td>${formatTimestamp(r.createdAt)}</td>
         <td>${escapeHTML(r.eventNome || r.eventSlug || "—")}</td>
         <td>${escapeHTML(principal.nome || "—")}<br><small style="color:var(--ink-500)">${escapeHTML(principal.email || "")}</small></td>
         <td>${escapeHTML(principal.telefone || "—")}</td>
         <td>${r.quantidade || 1}</td>
+        <td>${escapeHTML(tamanhosTxt)}</td>
         <td>${formatBRL(r.valorTotal)}</td>
         <td>${badgeStatus(r.statusPagamento)}</td>
         <td><button class="btn btn-secondary btn-xs" data-view="${r.id}">${ICONS.eye}<span>Ver</span></button></td>
