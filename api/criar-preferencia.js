@@ -51,6 +51,11 @@ function sanitizeParticipantes(arr) {
       p && p.desejaCamiseta === true ? true :
       p && p.desejaCamiseta === false ? false : null;
     const tamanho = String((p && p.tamanhoCamiseta) || "").trim();
+    // genero da camiseta (Masculino / Feminino) — usado pela loja /camizas.
+    const generoRaw = String((p && p.genero) || "").trim();
+    const genero = /^masc/i.test(generoRaw) ? "Masculino"
+                 : /^fem/i.test(generoRaw) ? "Feminino"
+                 : generoRaw;
     return {
       nome: String((p && p.nome) || "").trim(),
       email: String((p && p.email) || "").trim(),
@@ -59,6 +64,7 @@ function sanitizeParticipantes(arr) {
       comunidade: String((p && p.comunidade) || "").trim(),
       pastoral: String((p && p.pastoral) || "").trim(),
       endereco: String((p && p.endereco) || "").trim(),
+      genero: genero,
       desejaCamiseta: desejaCamiseta,
       tamanhoCamiseta: desejaCamiseta === false ? "" : tamanho
     };
