@@ -10,6 +10,7 @@
   },
   "rewrites": [
     { "source": "/mulheres", "destination": "/pages/mulheres.html" },
+    { "source": "/camizas",  "destination": "/pages/camizas.html"  },
     { "source": "/sucesso",  "destination": "/pages/sucesso.html"  },
     { "source": "/pendente", "destination": "/pages/pendente.html" },
     { "source": "/erro",     "destination": "/pages/erro.html"     },
