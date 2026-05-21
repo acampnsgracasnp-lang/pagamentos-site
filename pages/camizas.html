@@ -814,7 +814,6 @@
                 <tr><th>Tamanho</th><th>Altura</th><th>Largura</th></tr>
               </thead>
               <tbody>
-                <tr><td>PP</td><td>60 cm</td><td>44 cm</td></tr>
                 <tr><td>P</td><td>63 cm</td><td>47 cm</td></tr>
                 <tr><td>M</td><td>66 cm</td><td>50 cm</td></tr>
                 <tr><td>G</td><td>73 cm</td><td>55 cm</td></tr>
@@ -988,7 +987,7 @@
     limiteIngressos: 0,
     ingressosVendidos: 0,
     exigeCamiseta: true,
-    tamanhosCamiseta: ["PP","P","M","G","GG","XG","XXG"],
+    tamanhosCamiseta: ["P","M","G","GG","XG","XXG"],
     estoqueCamisetas: {},
     vendidoCamisetas: {},
     ativo: true,
@@ -1110,7 +1109,7 @@
      CAMISAS (blocos dinâmicos)
      ========================================================= */
   function shirtTemplate(idx){
-    const sizes = (eventData.tamanhosCamiseta || ["PP","P","M","G","GG","XG","XXG"])
+    const sizes = (eventData.tamanhosCamiseta || ["P","M","G","GG","XG","XXG"])
       .filter(s => !/n[ãa]o\s*dese/i.test(String(s)));
 
     const sizeOptionsHTML = sizes.map((sz, i) => {

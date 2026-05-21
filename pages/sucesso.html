@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
 <meta name="theme-color" content="#fbf5f1">
-<title>Inscrição confirmada — Bem-vinda ao evento</title>
+<title>Pagamento — Movimento Acampamento</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -566,12 +566,12 @@
 <header class="topbar">
   <div class="topbar-inner">
     <div class="brand">
-      <span class="brand-mark">M</span>
-      <span>Movidas pelo Espírito</span>
+      <span class="brand-mark">A</span>
+      <span>Movimento Acampamento</span>
     </div>
     <span class="trust-pill">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-      Inscrição segura
+      Pagamento seguro
     </span>
   </div>
 </header>
@@ -592,10 +592,10 @@
       </div>
       <div class="confirm-eyebrow">Pagamento aprovado</div>
       <h1 class="confirm-title">
-        <span>Seja bem-vinda</span>
-        <span class="strong" id="welcome-event-name">ao evento</span>
+        <span>Tudo certo com</span>
+        <span class="strong" id="welcome-event-name">seu pagamento</span>
       </h1>
-      <p class="confirm-sub">Sua inscrição está garantida. Guarde esta mensagem — ela é a sua confirmação.</p>
+      <p class="confirm-sub">Seu pagamento foi confirmado. Guarde esta mensagem — ela é a sua confirmação.</p>
     </section>
 
     <section class="message-section">
@@ -726,7 +726,7 @@
 
 <footer class="site-footer">
   <div class="org">Associação do Movimento Acampamento</div>
-  <div>1º Encontro de Mulheres — Movidas pelo Espírito · © 2026</div>
+  <div>Pagamento processado com segurança · © 2026</div>
 </footer>
 
 <script>
@@ -902,10 +902,43 @@
   function buildWelcomeMessage(reg) {
     const eventoNome = reg.eventNome || "nosso evento";
     const participantes = Array.isArray(reg.participantes) ? reg.participantes : [];
-    const principal = (participantes[0] && participantes[0].nome && participantes[0].nome.trim()) || "amiga";
+    const principal = (participantes[0] && participantes[0].nome && participantes[0].nome.trim()) || "";
     const qtd = Number(reg.quantidade) || participantes.length || 1;
     const valor = fmtBRL(reg.valorTotal);
+    const saudacao = principal ? "Olá, " + principal + "! " : "Olá! ";
 
+    // Pedido de camisa: os participantes têm o campo "genero" (Masculino/Feminino).
+    // Nesse caso a mensagem fica neutra — serve para homem e mulher.
+    const ehPedidoCamisa = participantes.some(p => p && p.genero);
+
+    if (ehPedidoCamisa) {
+      const listaCamisas = participantes.length
+        ? participantes
+            .map((p, i) => {
+              const nome = (p.nome && p.nome.trim()) || ("Camisa " + (i + 1));
+              const modelo = p.genero || "—";
+              const tam = tamanhoLabel(p.tamanhoCamiseta);
+              return (i + 1) + ". " + nome + " — Modelo " + modelo + ", Tamanho " + tam;
+            })
+            .join("\n")
+        : "—";
+
+      return (
+        saudacao +
+        "Seu pedido foi confirmado. 🎉\n\n" +
+        "O pagamento foi aprovado e suas camisas estão garantidas.\n\n" +
+        "📌 Dados do pedido:\n" +
+        "Produto: " + eventoNome + "\n" +
+        "Status: Pago\n" +
+        "Quantidade de camisas: " + qtd + "\n" +
+        "Valor pago: " + valor + "\n" +
+        "ID do pedido: " + regId + "\n\n" +
+        "👕 Camisas:\n" + listaCamisas + "\n\n" +
+        "Obrigado pela compra! 🙏"
+      );
+    }
+
+    // Inscrição em evento (ex.: encontro de mulheres) — mantém o feminino.
     const listaParticipantes = participantes.length
       ? participantes
           .map((p, i) => {
@@ -917,7 +950,8 @@
       : "—";
 
     return (
-      "Olá, " + principal + "! Seja bem-vinda ao evento " + eventoNome + ". 🎉\n\n" +
+      saudacao +
+      "Bem-vinda ao evento " + eventoNome + ". 🎉\n\n" +
       "Seu pagamento foi confirmado e sua inscrição está garantida.\n\n" +
       "📌 Dados da inscrição:\n" +
       "Evento: " + eventoNome + "\n" +
