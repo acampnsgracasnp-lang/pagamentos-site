@@ -1,0 +1,1461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+<meta name="description" content="Camisa oficial do Acampamento — modelos masculino e feminino. Compre pelo Pix.">
+<meta name="theme-color" content="#f3f6f2">
+<title>Camisa do Acampamento — Loja oficial</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=Manrope:wght@300..800&display=swap" rel="stylesheet">
+
+<!-- Firebase (mesmo projeto do pagamentos-site) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<style>
+  /* =========================================================
+     PALETA — verde acampamento / areia / madeira
+     ========================================================= */
+  :root{
+    --paper:        #f3f6f2;
+    --paper-warm:   #e9efe7;
+    --sage:         #dde8df;
+    --sage-soft:    #eaf2eb;
+    --green:        #2f8a5f;
+    --green-deep:   #1f6644;
+    --forest:       #163d2c;
+    --gold:         #b8935a;
+    --ink:          #1b271f;
+    --muted:        #6e8377;
+    --line:         #d6e2d8;
+    --danger:       #c0392b;
+    --success:      #2eb872;
+    --success-deep: #1f7a4d;
+
+    --radius-sm:  10px;
+    --radius:     18px;
+    --radius-lg:  28px;
+
+    --shadow-sm: 0 1px 2px rgba(22,61,44,.04), 0 2px 8px rgba(22,61,44,.05);
+    --shadow:    0 4px 16px rgba(22,61,44,.07), 0 16px 48px rgba(22,61,44,.08);
+    --shadow-lg: 0 12px 32px rgba(22,61,44,.12), 0 32px 80px rgba(22,61,44,.12);
+
+    --font-serif: "Fraunces", "Cormorant Garamond", Georgia, serif;
+    --font-sans:  "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--paper);
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, rgba(47,138,95,.08), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(184,147,90,.08), transparent 60%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+    min-height: 100vh;
+  }
+  img{ max-width:100%; display:block; }
+  button{ font: inherit; cursor: pointer; }
+  a{ color: var(--green-deep); }
+
+  .hidden{ display:none !important; }
+
+  /* =========================================================
+     TOPBAR
+     ========================================================= */
+  .topbar{
+    position: sticky; top:0; z-index:50;
+    background: rgba(243,246,242,.88);
+    backdrop-filter: saturate(140%) blur(14px);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+    border-bottom: 1px solid rgba(214,226,216,.8);
+  }
+  .topbar-inner{
+    max-width: 1080px; margin: 0 auto;
+    padding: 14px 22px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--forest);
+  }
+  .brand-mark{
+    width: 32px; height: 32px;
+    display:grid; place-items:center;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--green), var(--green-deep));
+    color: #fff;
+  }
+  .trust-pill{
+    display:inline-flex; align-items:center; gap:7px;
+    font-size: 12.5px; font-weight: 600;
+    color: var(--forest);
+    background: var(--sage-soft);
+    border: 1px solid var(--line);
+    padding: 7px 12px;
+    border-radius: 999px;
+  }
+  .trust-pill svg{ color: var(--green); }
+
+  /* =========================================================
+     CONTAINER / ESTADOS
+     ========================================================= */
+  .container{
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 32px 22px 80px;
+  }
+  .state-card{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 64px 32px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    margin-top: 40px;
+  }
+  .spinner{
+    width: 44px; height: 44px;
+    border: 3px solid var(--sage);
+    border-top-color: var(--green);
+    border-radius: 50%;
+    margin: 0 auto 18px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin{ to { transform: rotate(360deg);} }
+  .state-card p{ color: var(--muted); margin: 0; }
+
+  /* =========================================================
+     HERO
+     ========================================================= */
+  .hero{
+    position: relative;
+    margin-top: 24px;
+    padding: 54px 28px 46px;
+    background: linear-gradient(180deg, rgba(221,232,223,.7), rgba(234,242,235,.4));
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    text-align: center;
+  }
+  .hero::before,
+  .hero::after{
+    content:"";
+    position: absolute;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: .5;
+    pointer-events:none;
+  }
+  .hero::before{ top:-120px; left:-100px; background: radial-gradient(circle, var(--green) 0%, transparent 70%); }
+  .hero::after{ bottom:-140px; right:-120px; background: radial-gradient(circle, var(--gold) 0%, transparent 70%); }
+
+  .hero-eyebrow{
+    position: relative; z-index: 2;
+    display: inline-flex; align-items: center; gap: 10px;
+    font-size: 11.5px;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--green-deep);
+    font-weight: 700;
+    margin-bottom: 18px;
+  }
+  .hero-eyebrow::before,
+  .hero-eyebrow::after{
+    content:""; width:28px; height:1px; background: var(--green-deep); opacity:.5;
+  }
+  .hero h1{
+    position: relative; z-index: 2;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(34px, 6vw, 58px);
+    line-height: 1.06;
+    color: var(--forest);
+    margin: 0;
+  }
+  .hero h1 .strong{
+    display:block;
+    font-style: normal;
+    font-weight: 600;
+    color: var(--green-deep);
+    margin-top: 4px;
+  }
+  .hero-sub{
+    position: relative; z-index: 2;
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--muted);
+    font-size: clamp(15px, 2.2vw, 19px);
+    max-width: 560px;
+    margin: 18px auto 0;
+  }
+  .hero-status{
+    position: relative; z-index: 2;
+    display: inline-flex; align-items:center; gap: 8px;
+    margin-top: 22px;
+    background: #fff;
+    border: 1px solid var(--line);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--forest);
+    box-shadow: var(--shadow-sm);
+  }
+  .pulse-dot{
+    width: 8px; height: 8px;
+    background: var(--success);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%   { box-shadow: 0 0 0 0 rgba(46,184,114,.6); }
+    70%  { box-shadow: 0 0 0 10px rgba(46,184,114,0); }
+    100% { box-shadow: 0 0 0 0 rgba(46,184,114,0); }
+  }
+
+  /* =========================================================
+     INFO STRIP
+     ========================================================= */
+  .info-strip{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .info-cell{ background: #fff; padding: 22px 18px; text-align: center; }
+  .info-cell.highlight{
+    background: linear-gradient(135deg, var(--green-deep), var(--green));
+    color: #fff;
+  }
+  .info-cell.highlight .info-label{ color: rgba(255,255,255,.8); }
+  .info-cell .info-label{
+    font-size: 10.5px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .info-cell .info-value{
+    font-family: var(--font-serif);
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--forest);
+    line-height: 1.25;
+  }
+  .info-cell.highlight .info-value{ color: #fff; }
+  .info-cell .info-value small{
+    display:block;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    color: inherit;
+    opacity: .72;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  @media (max-width: 720px){
+    .info-strip{ grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* =========================================================
+     SEÇÕES
+     ========================================================= */
+  .section{ margin-top: 52px; }
+  .section-header{ text-align: center; margin-bottom: 26px; }
+  .section-eyebrow{
+    font-size: 11px;
+    letter-spacing: .24em;
+    text-transform: uppercase;
+    color: var(--green);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .section-title{
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(26px, 4vw, 38px);
+    color: var(--forest);
+    margin: 0;
+  }
+  .section-sub{
+    color: var(--muted);
+    max-width: 560px;
+    margin: 12px auto 0;
+    font-size: 15px;
+  }
+
+  /* =========================================================
+     VITRINE DA CAMISA
+     ========================================================= */
+  .shirt-grid{
+    display: grid;
+    grid-template-columns: 1.05fr .95fr;
+    gap: 28px;
+    align-items: stretch;
+  }
+  @media (max-width: 860px){ .shirt-grid{ grid-template-columns: 1fr; } }
+
+  .shirt-showcase{
+    background: linear-gradient(160deg, #eaf2eb 0%, #dde8df 60%, #cfe0d3 100%);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    padding: 30px 26px;
+    position: relative;
+    overflow: hidden;
+    min-height: 360px;
+    display: grid; place-items: center;
+  }
+  .shirt-showcase::before{
+    content:""; position:absolute;
+    width: 220px; height: 220px; top:-60px; right:-60px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.6), transparent 70%);
+    pointer-events:none;
+  }
+  .shirt-illustration{
+    position: relative;
+    width: 100%; max-width: 380px;
+    object-fit: contain;
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+  }
+
+  .shirt-side{ display: grid; gap: 16px; align-content: start; }
+  .shirt-info-card{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    box-shadow: var(--shadow-sm);
+  }
+  .shirt-info-card h3{
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 20px;
+    margin: 0 0 4px;
+    color: var(--forest);
+  }
+  .shirt-info-card p{ margin: 0; font-size: 14px; color: var(--muted); }
+
+  .model-row{
+    display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;
+  }
+  .model-tag{
+    display:inline-flex; align-items:center; gap:7px;
+    background: var(--sage-soft);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-size: 13px; font-weight: 700;
+    color: var(--forest);
+  }
+
+  .size-table{
+    width:100%; border-collapse: collapse;
+    margin-top: 14px; font-size: 13.5px;
+  }
+  .size-table th{
+    text-align: left; padding: 10px 8px;
+    font-size: 10.5px; letter-spacing: .18em;
+    text-transform: uppercase; color: var(--muted);
+    font-weight: 700; border-bottom: 1px solid var(--line);
+  }
+  .size-table td{
+    padding: 10px 8px;
+    border-bottom: 1px solid #e7efe8;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .size-table td:first-child{
+    font-family: var(--font-serif);
+    font-weight: 600; color: var(--green-deep); font-size: 15px;
+  }
+  .size-table tr:last-child td{ border-bottom: none; }
+
+  /* =========================================================
+     FORMULÁRIO
+     ========================================================= */
+  .card{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+  }
+  .form-card{ padding: 0; overflow: hidden; }
+  .form-head{
+    background: linear-gradient(135deg, var(--forest), var(--green-deep));
+    color: #fff;
+    padding: 32px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .form-head::after{
+    content:""; position:absolute; right:-40px; top:-40px;
+    width: 200px; height: 200px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.14), transparent 70%);
+  }
+  .form-head h2{
+    font-family: var(--font-serif);
+    font-style: italic; font-weight: 400;
+    font-size: 30px; margin: 0 0 6px;
+  }
+  .form-head p{ margin: 0; color: rgba(255,255,255,.8); font-size: 14.5px; }
+  .form-body{ padding: 36px; }
+  @media (max-width: 600px){
+    .form-head{ padding: 26px 22px; }
+    .form-head h2{ font-size: 24px; }
+    .form-body{ padding: 26px 20px; }
+  }
+
+  .form-section{
+    margin-bottom: 34px;
+    padding-bottom: 30px;
+    border-bottom: 1px solid var(--line);
+  }
+  .form-section:last-child{ border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+  .form-section-title{
+    display:flex; align-items:center; gap: 14px;
+    margin-bottom: 20px;
+  }
+  .form-section-title .num{
+    width: 32px; height: 32px;
+    display:grid; place-items:center;
+    border-radius: 50%;
+    background: var(--sage);
+    color: var(--green-deep);
+    font-family: var(--font-serif);
+    font-style: italic; font-weight: 600; font-size: 16px;
+    flex-shrink: 0;
+  }
+  .form-section-title h3{
+    font-family: var(--font-serif);
+    font-weight: 500; font-style: italic;
+    font-size: 22px; color: var(--forest);
+    margin: 0;
+  }
+
+  /* Quantidade */
+  .qty-control{
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--paper-warm);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px;
+  }
+  .qty-btn{
+    width: 42px; height: 42px;
+    border: none; background: #fff;
+    border-radius: 50%;
+    color: var(--green-deep);
+    font-size: 22px; font-weight: 500;
+    display:grid; place-items:center;
+    transition: transform .15s, background .15s;
+    box-shadow: var(--shadow-sm);
+  }
+  .qty-btn:hover:not(:disabled){ background: var(--green); color: #fff; transform: scale(1.05); }
+  .qty-btn:disabled{ opacity: .35; cursor: not-allowed; }
+  .qty-value{
+    min-width: 56px; text-align: center;
+    font-family: var(--font-serif);
+    font-weight: 600; font-size: 22px;
+    color: var(--forest);
+  }
+  .qty-hint{ margin-top: 10px; font-size: 13px; color: var(--muted); }
+
+  /* Campos */
+  .grid-2{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px){ .grid-2{ grid-template-columns: 1fr; } }
+  .field{ margin-bottom: 16px; }
+  .field:last-child{ margin-bottom: 0; }
+  .field label{
+    display:block;
+    font-size: 12.5px; font-weight: 600;
+    letter-spacing: .03em;
+    color: var(--forest);
+    margin-bottom: 7px;
+  }
+  .field label .req{ color: var(--danger); margin-left: 2px; }
+  .field label .field-optional{ color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 4px; }
+  .field input{
+    width: 100%;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font: inherit; color: var(--ink);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field input:focus{
+    outline: none;
+    border-color: var(--green);
+    box-shadow: 0 0 0 4px rgba(47,138,95,.13);
+  }
+  .field-hint{ font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* Bloco de camisa */
+  .shirt-item{
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px 22px;
+    margin-bottom: 16px;
+  }
+  .shirt-item-head{
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .shirt-item-head .badge{
+    background: var(--green-deep);
+    color: #fff;
+    font-family: var(--font-serif);
+    font-style: italic; font-weight: 600;
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+  .shirt-item-head h4{
+    font-family: var(--font-serif);
+    font-weight: 500; font-size: 18px;
+    color: var(--forest); margin: 0;
+  }
+
+  /* Gênero — dois botões */
+  .gender-options{ display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .gender-option input{ position:absolute; opacity:0; pointer-events:none; }
+  .gender-option label{
+    display:flex; align-items:center; justify-content:center; gap: 9px;
+    padding: 15px 10px;
+    background: #fff;
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-weight: 700; font-size: 15px;
+    color: var(--forest);
+    transition: all .15s;
+    margin: 0;
+  }
+  .gender-option label svg{ width: 18px; height: 18px; }
+  .gender-option label:hover{ border-color: var(--green); background: var(--sage-soft); }
+  .gender-option input:checked + label{
+    background: linear-gradient(135deg, var(--green), var(--green-deep));
+    color: #fff;
+    border-color: var(--green-deep);
+    box-shadow: 0 4px 12px rgba(47,138,95,.25);
+  }
+
+  /* Tamanhos — botões radio */
+  .size-options{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(78px, 1fr));
+    gap: 8px;
+  }
+  .size-option{ position: relative; }
+  .size-option input{ position: absolute; opacity: 0; pointer-events: none; }
+  .size-option label{
+    display: block;
+    padding: 12px 8px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-serif);
+    font-weight: 600; font-size: 15px;
+    color: var(--forest);
+    transition: all .15s;
+    margin: 0;
+  }
+  .size-option label:hover{ border-color: var(--green); background: var(--sage-soft); }
+  .size-option input:checked + label{
+    background: linear-gradient(135deg, var(--green), var(--green-deep));
+    color: #fff;
+    border-color: var(--green-deep);
+    box-shadow: 0 4px 12px rgba(47,138,95,.25);
+  }
+  .size-option.size-out label{
+    background: #eef1ee; color: var(--muted);
+    border-style: dashed; cursor: not-allowed;
+  }
+  .size-option.size-out label:hover{ background: #eef1ee; border-color: var(--line); }
+  .size-option .size-rest{
+    display: block; margin-top: 2px;
+    font-family: var(--font-sans);
+    font-size: 10px; font-weight: 700;
+    letter-spacing: .06em; text-transform: uppercase;
+    opacity: .8;
+  }
+  .size-option.size-out .size-rest{ color: var(--danger); opacity: 1; }
+
+  /* TOTAL */
+  .total-box{
+    margin-top: 26px;
+    background: linear-gradient(135deg, var(--paper-warm), var(--sage-soft));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .total-box .total-label{
+    font-size: 11.5px; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--muted);
+    font-weight: 700;
+  }
+  .total-box .total-break{ color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+  .total-box .total-fee-note{
+    margin-top: 10px;
+    font-size: 12px; color: var(--success-deep);
+    font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .total-box .total-fee-note::before{
+    content: "✓";
+    display: inline-grid; place-items: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--success); color: #fff;
+    font-size: 10px; font-weight: 800;
+  }
+  .total-box .total-value{
+    font-family: var(--font-serif);
+    font-weight: 600; font-size: 38px;
+    color: var(--forest); line-height: 1;
+  }
+  .total-box .total-value small{ font-size: 16px; color: var(--muted); font-weight: 500; }
+
+  /* CTA */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap: 10px;
+    padding: 16px 28px;
+    border: none; border-radius: 999px;
+    font-weight: 700; font-size: 15px;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--green-deep), var(--forest));
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(22,61,44,.25);
+  }
+  .btn-primary:hover:not(:disabled){ transform: translateY(-2px); box-shadow: 0 12px 32px rgba(22,61,44,.32); }
+  .btn-primary:disabled{ opacity: .55; cursor: not-allowed; transform: none; }
+  .btn-block{ display:flex; width: 100%; }
+  .btn-lg{ padding: 18px 32px; font-size: 16px; }
+
+  .trust-row{
+    display: flex; align-items: center; justify-content: center; gap: 14px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+    font-size: 12.5px; color: var(--muted); font-weight: 500;
+  }
+  .trust-row .sep{ opacity: .35; }
+  .trust-row .it{ display:inline-flex; align-items:center; gap: 6px; }
+
+  .alert{
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+    font-size: 14px;
+    border-left: 3px solid;
+  }
+  .alert-danger{ background: #fbe9e7; color: #7a241a; border-color: var(--danger); }
+  .alert-warning{ background: #fef4e0; color: #6b4a17; border-color: var(--gold); }
+
+  .site-footer{
+    text-align: center;
+    padding: 40px 22px;
+    color: var(--muted);
+    font-size: 13px;
+    border-top: 1px solid var(--line);
+    margin-top: 56px;
+    background: rgba(255,255,255,.4);
+  }
+  .site-footer .org{
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--forest);
+    font-weight: 500;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
+      </span>
+      <span>Loja do Acampamento</span>
+    </div>
+    <span class="trust-pill">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Pagamento seguro
+    </span>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- LOADING -->
+  <div id="loading-state" class="state-card">
+    <div class="spinner"></div>
+    <p>Carregando a loja…</p>
+  </div>
+
+  <!-- ERRO -->
+  <div id="error-state" class="state-card hidden">
+    <div class="alert alert-danger" id="error-message">Produto não encontrado.</div>
+    <p>Verifique o link ou entre em contato com o organizador.</p>
+  </div>
+
+  <!-- CONTEÚDO -->
+  <div id="event-state" class="hidden">
+
+    <!-- HERO -->
+    <section class="hero">
+      <div class="hero-eyebrow"><span id="hero-eyebrow-text">Loja oficial · Acampamento</span></div>
+      <h1>
+        <span>A camisa do</span>
+        <span class="strong">Acampamento</span>
+      </h1>
+      <p class="hero-sub" id="event-subtitle">
+        A camisa oficial do acampamento — disponível nos modelos masculino e feminino, em vários tamanhos.
+      </p>
+      <div class="hero-status">
+        <span class="pulse-dot"></span>
+        <span>Vendas abertas</span>
+      </div>
+    </section>
+
+    <!-- INFO STRIP -->
+    <div class="info-strip">
+      <div class="info-cell highlight">
+        <div class="info-label">Valor por camisa</div>
+        <div class="info-value" id="event-price">R$ —<small>cada camisa</small></div>
+      </div>
+      <div class="info-cell">
+        <div class="info-label">Modelos</div>
+        <div class="info-value">Masculino<small>e Feminino</small></div>
+      </div>
+      <div class="info-cell">
+        <div class="info-label">Pagamento</div>
+        <div class="info-value">Pix<small>QR Code instantâneo</small></div>
+      </div>
+      <div class="info-cell">
+        <div class="info-label">Disponíveis</div>
+        <div class="info-value" id="event-remaining">—<small>restantes</small></div>
+      </div>
+    </div>
+
+    <!-- VITRINE -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-eyebrow">A camisa do acampamento</div>
+        <h2 class="section-title">Para homens e mulheres</h2>
+        <p class="section-sub">Estampa exclusiva do acampamento. Escolha o modelo e o tamanho de cada camisa — você pode pedir várias de uma vez.</p>
+      </div>
+
+      <div class="shirt-grid">
+        <div class="shirt-showcase">
+          <img class="shirt-illustration"
+               src="/images/camizas_acampamento.jpeg"
+               alt="Camisa oficial do Acampamento">
+        </div>
+
+        <div class="shirt-side">
+          <div class="shirt-info-card">
+            <h3>Modelos disponíveis</h3>
+            <p>A mesma estampa em dois modelos de modelagem — escolha o seu na hora do pedido.</p>
+            <div class="model-row">
+              <span class="model-tag">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="6"/><path d="M14.5 9.5 20 4M16 4h4v4"/></svg>
+                Masculino
+              </span>
+              <span class="model-tag">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M12 14v8M9 19h6"/></svg>
+                Feminino
+              </span>
+            </div>
+          </div>
+
+          <div class="shirt-info-card">
+            <h3>Tabela de tamanhos</h3>
+            <p>Medidas aproximadas em centímetros. Em caso de dúvida, escolha um número maior.</p>
+            <table class="size-table">
+              <thead>
+                <tr><th>Tamanho</th><th>Altura</th><th>Largura</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>PP</td><td>60 cm</td><td>44 cm</td></tr>
+                <tr><td>P</td><td>63 cm</td><td>47 cm</td></tr>
+                <tr><td>M</td><td>66 cm</td><td>50 cm</td></tr>
+                <tr><td>G</td><td>73 cm</td><td>55 cm</td></tr>
+                <tr><td>GG</td><td>78 cm</td><td>60 cm</td></tr>
+                <tr><td>XG</td><td>82 cm</td><td>64 cm</td></tr>
+                <tr><td>XXG</td><td>86 cm</td><td>68 cm</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOQUEIO -->
+    <div id="event-blocked" class="alert alert-warning hidden"></div>
+
+    <!-- FORMULÁRIO -->
+    <section class="section">
+      <form id="order-form" class="card form-card" novalidate>
+
+        <div class="form-head">
+          <h2>Peça sua camisa</h2>
+          <p>Escolha quantas camisas quer, defina modelo e tamanho de cada uma e pague pelo Pix.</p>
+        </div>
+
+        <div class="form-body">
+
+          <!-- 1. QUANTIDADE -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <div class="num">1</div>
+              <h3>Quantas camisas?</h3>
+            </div>
+            <div class="qty-control" role="group" aria-label="Quantidade de camisas">
+              <button type="button" class="qty-btn" id="qty-minus" aria-label="Diminuir">−</button>
+              <span class="qty-value" id="qty-value">1</span>
+              <button type="button" class="qty-btn" id="qty-plus" aria-label="Aumentar">+</button>
+            </div>
+            <div class="qty-hint" id="qty-hint">Você pode pedir várias camisas em um único pagamento.</div>
+          </div>
+
+          <!-- 2. COMPRADOR -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <div class="num">2</div>
+              <h3>Seus dados de contato</h3>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label>Nome completo <span class="req">*</span></label>
+                <input type="text" id="buyer-nome" autocomplete="name" placeholder="Ex.: João da Silva">
+              </div>
+              <div class="field">
+                <label>Telefone com DDD <span class="req">*</span></label>
+                <input type="tel" id="buyer-telefone" inputmode="tel" placeholder="(93) 9 8000-0000">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="field">
+                <label>E-mail <span class="req">*</span></label>
+                <input type="email" id="buyer-email" autocomplete="email" placeholder="seu@email.com">
+              </div>
+              <div class="field">
+                <label>Cidade</label>
+                <input type="text" id="buyer-cidade" placeholder="Sua cidade">
+              </div>
+            </div>
+            <div class="field-hint">Usaremos esses dados para confirmar o pedido e a entrega das camisas.</div>
+          </div>
+
+          <!-- 3. CAMISAS -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <div class="num">3</div>
+              <h3>Modelo e tamanho de cada camisa</h3>
+            </div>
+            <div id="shirts-container"></div>
+          </div>
+
+          <!-- 4. PAGAMENTO -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <div class="num">4</div>
+              <h3>Resumo e pagamento</h3>
+            </div>
+
+            <div class="total-box">
+              <div>
+                <div class="total-label">Total a pagar</div>
+                <div class="total-break" id="total-breakdown">1 × R$ 0,00</div>
+                <div class="total-fee-note">Valor final — taxa do Pix já incluída. Você não paga nada além disso.</div>
+              </div>
+              <div class="total-value" id="total-value">R$ 0<small>,00</small></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-submit" style="margin-top:22px">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L22 12 L12 22 L2 12 Z"/><path d="M8 8 L16 16"/><path d="M16 8 L8 16"/></svg>
+              <span id="btn-submit-text">Pagar com Pix</span>
+            </button>
+
+            <div class="trust-row">
+              <span class="it">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Conexão segura
+              </span>
+              <span class="sep">•</span>
+              <span>Processado pelo Mercado Pago</span>
+              <span class="sep">•</span>
+              <span>Pagamento via PIX</span>
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="org">Associação do Movimento Acampamento</div>
+  <div>Camisa oficial do Acampamento · © 2026</div>
+</footer>
+
+<!-- =========================================================
+     SCRIPTS — Firebase + lógica do pedido de camisas
+     Mesmo backend do pagamentos-site (api/criar-pix).
+     ========================================================= -->
+<script>
+  /* firebaseConfig do projeto pagamentos-site */
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCrrTLJMWve_8mNptzAiMxz5ejTFE58GXA",
+    authDomain:        "pagamentos-site.firebaseapp.com",
+    projectId:         "pagamentos-site",
+    storageBucket:     "pagamentos-site.firebasestorage.app",
+    messagingSenderId: "350551469871",
+    appId:             "1:350551469871:web:98ef3105c2590f9df23bda",
+    measurementId:     "G-DR9Z41XCZN"
+  };
+  // URL da Vercel que hospeda /api/criar-pix (mesma conta Mercado Pago da página /mulheres)
+  const API_BASE_URL = "https://pagamentos-site.vercel.app";
+
+  // Slug do evento/produto no Firestore. Pode vir por ?evento=camisas
+  const DEFAULT_SLUG = "camisas";
+
+  /* ------- inicializa Firebase (guard contra double-init) ------- */
+  if (typeof firebase !== "undefined" && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = (typeof firebase !== "undefined" && firebase.apps.length) ? firebase.firestore() : null;
+
+  /* ------- helpers ------- */
+  const $ = (id) => document.getElementById(id);
+  const fmtBRL = (n) => "R$ " + Number(n).toFixed(2).replace(".", ",");
+  const fmtBRLSplit = (n) => {
+    const [a, b] = Number(n).toFixed(2).split(".");
+    return { reais: "R$ " + a, cents: "," + b };
+  };
+
+  /* ------- estado -------
+     eventData usa os MESMOS campos gravados pelo /admin
+     (events.valor, events.tamanhosCamiseta, events.estoqueCamisetas,
+      events.vendidoCamisetas, events.limiteIngressos, events.ativo).
+     Aqui events.valor = preço de UMA camisa. ------------------ */
+  let eventData = {
+    id: null,
+    slug: DEFAULT_SLUG,
+    nome: "Camisa do Acampamento",
+    valor: 0,                                   // preço de uma camisa
+    precoCamiseta: 0,
+    limiteIngressos: 0,
+    ingressosVendidos: 0,
+    exigeCamiseta: true,
+    tamanhosCamiseta: ["PP","P","M","G","GG","XG","XXG"],
+    estoqueCamisetas: {},
+    vendidoCamisetas: {},
+    ativo: true,
+    dataEvento: "",
+    local: "",
+    descricao: "",
+    bannerUrl: ""
+  };
+  let qty = 1;
+
+  // estoque restante de um tamanho. Infinity = ilimitado / sem estoque configurado.
+  function restanteTamanho(sz) {
+    const total = Number(eventData.estoqueCamisetas && eventData.estoqueCamisetas[sz]) || 0;
+    if (total <= 0) return Infinity;
+    const vend = Number(eventData.vendidoCamisetas && eventData.vendidoCamisetas[sz]) || 0;
+    return Math.max(0, total - vend);
+  }
+  function tamanhoEsgotado(sz) { return restanteTamanho(sz) <= 0; }
+
+  /* =========================================================
+     CARREGAMENTO DO PRODUTO
+     ========================================================= */
+  async function loadEvent(){
+    // Recuperação: se o usuário iniciou um Pix recentemente e voltou pra cá,
+    // mandamos direto para /sucesso (que mostra o QR e faz o polling).
+    try {
+      const raw = localStorage.getItem("lastCheckout");
+      if (raw && db) {
+        const last = JSON.parse(raw);
+        const idadeMs = Date.now() - (Number(last.ts) || 0);
+        if (last && last.id && idadeMs < 30 * 60 * 1000) {
+          const pixData = localStorage.getItem("pix:" + last.id);
+          const snap = await db.collection("registrations").doc(last.id).get();
+          if (snap.exists) {
+            const st = String(snap.data().statusPagamento || "").toLowerCase();
+            if (st === "pago" || st === "pendente") {
+              if (st === "pago") {
+                localStorage.removeItem("lastCheckout");
+                localStorage.removeItem("pix:" + last.id);
+              }
+              location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
+              return;
+            }
+            if (st === "recusado" || st === "cancelado") {
+              localStorage.removeItem("lastCheckout");
+              localStorage.removeItem("pix:" + last.id);
+            }
+          } else if (pixData) {
+            location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
+            return;
+          }
+        } else if (idadeMs >= 30 * 60 * 1000) {
+          localStorage.removeItem("lastCheckout");
+        }
+      }
+    } catch (err) {
+      console.warn("Falha ao verificar checkout pendente:", err);
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("evento") || DEFAULT_SLUG;
+    eventData.slug = slug;
+
+    try {
+      if (db) {
+        const snap = await db.collection("events").where("slug", "==", slug).limit(1).get();
+        if (!snap.empty) {
+          const doc = snap.docs[0];
+          eventData = { ...eventData, ...doc.data(), id: doc.id };
+        }
+      }
+    } catch (err) {
+      console.warn("Firestore indisponível, usando dados padrão.", err);
+    }
+
+    renderEvent();
+  }
+
+  function renderEvent(){
+    $("loading-state").classList.add("hidden");
+    $("event-state").classList.remove("hidden");
+
+    if (eventData.nome) document.title = eventData.nome + " — Loja oficial";
+
+    // Preço de uma camisa
+    const base = Number(eventData.valor) || 0;
+    const s = fmtBRLSplit(base);
+    $("event-price").innerHTML = `${s.reais}${s.cents}<small>cada camisa</small>`;
+
+    // Disponíveis (limite de camisas — opcional)
+    const restante = Math.max(0, (eventData.limiteIngressos||0) - (eventData.ingressosVendidos||0));
+    if (eventData.limiteIngressos) {
+      $("event-remaining").innerHTML = `${restante}<small>de ${eventData.limiteIngressos}</small>`;
+    } else {
+      $("event-remaining").innerHTML = `Disponível<small>estoque aberto</small>`;
+    }
+
+    // bloqueio: produto pausado
+    if (eventData.ativo === false) {
+      const b = $("event-blocked");
+      b.textContent = "As vendas desta camisa estão pausadas no momento.";
+      b.classList.remove("hidden");
+      $("order-form").classList.add("hidden");
+      return;
+    }
+    // bloqueio: estoque total esgotado
+    if (eventData.limiteIngressos && restante <= 0) {
+      const b = $("event-blocked");
+      b.textContent = "As camisas estão ESGOTADAS — não há mais unidades disponíveis.";
+      b.classList.remove("hidden");
+      $("order-form").classList.add("hidden");
+      return;
+    }
+
+    renderShirts();
+  }
+
+  /* =========================================================
+     CAMISAS (blocos dinâmicos)
+     ========================================================= */
+  function shirtTemplate(idx){
+    const sizes = (eventData.tamanhosCamiseta || ["PP","P","M","G","GG","XG","XXG"])
+      .filter(s => !/n[ãa]o\s*dese/i.test(String(s)));
+
+    const sizeOptionsHTML = sizes.map((sz, i) => {
+      const esgotado = tamanhoEsgotado(sz);
+      const rest = restanteTamanho(sz);
+      const restLabel = Number.isFinite(rest)
+        ? (esgotado ? "ESGOTADO" : `${rest} restantes`)
+        : "";
+      return `
+        <div class="size-option ${esgotado ? "size-out" : ""}">
+          <input type="radio" name="size-${idx}" id="size-${idx}-${i}" value="${sz}" ${esgotado ? "disabled" : ""}>
+          <label for="size-${idx}-${i}" title="${restLabel}">
+            ${sz}${restLabel ? `<span class="size-rest">${restLabel}</span>` : ""}
+          </label>
+        </div>
+      `;
+    }).join("");
+
+    return `
+      <div class="shirt-item" data-idx="${idx}">
+        <div class="shirt-item-head">
+          <span class="badge">Camisa ${idx + 1}</span>
+          <h4 id="shirt-title-${idx}">Escolha modelo e tamanho</h4>
+        </div>
+
+        <div class="field">
+          <label>Modelo da camisa <span class="req">*</span></label>
+          <div class="gender-options">
+            <div class="gender-option">
+              <input type="radio" name="genero-${idx}" id="genero-${idx}-m" value="Masculino">
+              <label for="genero-${idx}-m">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="14" r="6"/><path d="M14.5 9.5 20 4M16 4h4v4"/></svg>
+                Masculino
+              </label>
+            </div>
+            <div class="gender-option">
+              <input type="radio" name="genero-${idx}" id="genero-${idx}-f" value="Feminino">
+              <label for="genero-${idx}-f">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="6"/><path d="M12 14v8M9 19h6"/></svg>
+                Feminino
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Tamanho <span class="req">*</span></label>
+          <div class="size-options">${sizeOptionsHTML}</div>
+        </div>
+
+        <div class="field">
+          <label>Nome de quem vai usar <small class="field-optional">(opcional)</small></label>
+          <input type="text" data-field="nome" placeholder="Se for presente, informe o nome de quem vai receber">
+        </div>
+      </div>
+    `;
+  }
+
+  function renderShirts(){
+    const c = $("shirts-container");
+
+    // preserva valores ao re-renderizar
+    const prev = [...c.querySelectorAll(".shirt-item")].map(el => {
+      const idx = el.getAttribute("data-idx");
+      return {
+        genero: (c.querySelector(`input[name="genero-${idx}"]:checked`) || {}).value || "",
+        size:   (c.querySelector(`input[name="size-${idx}"]:checked`) || {}).value || "",
+        nome:   (el.querySelector('input[data-field="nome"]') || {}).value || ""
+      };
+    });
+
+    c.innerHTML = "";
+    for (let i = 0; i < qty; i++) {
+      c.insertAdjacentHTML("beforeend", shirtTemplate(i));
+    }
+
+    prev.forEach((v, i) => {
+      if (i >= qty) return;
+      if (v.genero) {
+        const r = c.querySelector(`input[name="genero-${i}"][value="${v.genero}"]`);
+        if (r) r.checked = true;
+      }
+      if (v.size) {
+        const r = c.querySelector(`input[name="size-${i}"][value="${v.size}"]`);
+        if (r && !r.disabled) r.checked = true;
+      }
+      if (v.nome) {
+        const n = c.querySelector(`.shirt-item[data-idx="${i}"] input[data-field="nome"]`);
+        if (n) n.value = v.nome;
+      }
+    });
+
+    // listeners
+    c.querySelectorAll('input[type="radio"]').forEach(r => {
+      r.addEventListener("change", () => { updateTotal(); refreshShirtHeader(r); });
+    });
+    c.querySelectorAll('input[data-field="nome"]').forEach(inp => {
+      inp.addEventListener("input", () => {
+        const idx = inp.closest(".shirt-item").getAttribute("data-idx");
+        refreshShirtHeaderByIdx(idx);
+      });
+    });
+
+    for (let i = 0; i < qty; i++) refreshShirtHeaderByIdx(i);
+    updateTotal();
+  }
+
+  function refreshShirtHeader(input){
+    const idx = input.closest(".shirt-item").getAttribute("data-idx");
+    refreshShirtHeaderByIdx(idx);
+  }
+  function refreshShirtHeaderByIdx(idx){
+    const item = document.querySelector(`.shirt-item[data-idx="${idx}"]`);
+    if (!item) return;
+    const nome = (item.querySelector('input[data-field="nome"]') || {}).value || "";
+    const genero = (item.querySelector(`input[name="genero-${idx}"]:checked`) || {}).value || "";
+    const size = (item.querySelector(`input[name="size-${idx}"]:checked`) || {}).value || "";
+    const detalhe = [genero, size].filter(Boolean).join(" · ");
+    const titulo = nome.trim()
+      ? nome.trim() + (detalhe ? ` — ${detalhe}` : "")
+      : (detalhe || "Escolha modelo e tamanho");
+    $(`shirt-title-${idx}`).textContent = titulo;
+  }
+
+  /* =========================================================
+     QUANTIDADE
+     ========================================================= */
+  $("qty-minus").addEventListener("click", () => {
+    if (qty > 1) { qty--; renderShirts(); }
+    refreshQtyButtons();
+  });
+  $("qty-plus").addEventListener("click", () => {
+    const max = eventData.limiteIngressos
+      ? Math.max(0, eventData.limiteIngressos - (eventData.ingressosVendidos||0))
+      : 20;
+    if (qty < Math.min(20, max || 20)) { qty++; renderShirts(); }
+    refreshQtyButtons();
+  });
+  function refreshQtyButtons(){
+    $("qty-value").textContent = qty;
+    $("qty-minus").disabled = qty <= 1;
+  }
+
+  function updateTotal(){
+    const base = Number(eventData.valor) || 0;
+    const total = qty * base;
+    const s = fmtBRLSplit(total);
+    $("total-value").innerHTML = `${s.reais}<small>${s.cents}</small>`;
+    $("total-breakdown").textContent = `${qty} × ${fmtBRL(base)}`;
+  }
+
+  /* =========================================================
+     SUBMIT — valida, cria o Pix e vai para /sucesso
+     Usa /api/criar-pix (mesma conta Mercado Pago da /mulheres).
+     ========================================================= */
+  async function parseApiError(resp) {
+    const text = await resp.text();
+    try {
+      const j = JSON.parse(text);
+      return j.error || j.message || (j.details && (j.details.message || JSON.stringify(j.details))) || text.slice(0, 200);
+    } catch {
+      return text.slice(0, 200) || ("HTTP " + resp.status);
+    }
+  }
+
+  $("order-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = $("btn-submit");
+    const btnTxt = $("btn-submit-text");
+
+    // dados do comprador
+    const buyer = {
+      nome:     $("buyer-nome").value.trim(),
+      telefone: $("buyer-telefone").value.trim(),
+      email:    $("buyer-email").value.trim(),
+      cidade:   $("buyer-cidade").value.trim()
+    };
+    if (!buyer.nome || buyer.nome.length < 3) {
+      alert("Informe o seu nome completo.");
+      $("buyer-nome").focus();
+      return;
+    }
+    if (buyer.telefone.replace(/\D/g, "").length < 10) {
+      alert("Informe um telefone válido com DDD.");
+      $("buyer-telefone").focus();
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyer.email)) {
+      alert("Informe um e-mail válido.");
+      $("buyer-email").focus();
+      return;
+    }
+
+    // dados de cada camisa
+    const shirts = [];
+    for (let i = 0; i < qty; i++) {
+      const genero = (document.querySelector(`input[name="genero-${i}"]:checked`) || {}).value || "";
+      const tamanho = (document.querySelector(`input[name="size-${i}"]:checked`) || {}).value || "";
+      const nome = (document.querySelector(`.shirt-item[data-idx="${i}"] input[data-field="nome"]`) || {}).value.trim() || "";
+      if (!genero) {
+        alert(`Escolha o modelo (Masculino ou Feminino) da Camisa ${i + 1}.`);
+        return;
+      }
+      if (!tamanho) {
+        alert(`Escolha o tamanho da Camisa ${i + 1}.`);
+        return;
+      }
+      shirts.push({ genero, tamanho, nome });
+    }
+
+    btn.disabled = true;
+    btnTxt.textContent = "Verificando estoque…";
+
+    let navegando = false;
+    try {
+      if (!db || !eventData.id) {
+        alert("Produto não encontrado no Firestore.\n\nCrie o produto pelo painel /admin (Novo evento) com o slug \"" + DEFAULT_SLUG + "\" antes de vender as camisas.");
+        return;
+      }
+
+      // recarrega o produto para checar estoque em tempo real
+      const freshSnap = await db.collection("events").doc(eventData.id).get();
+      if (!freshSnap.exists) { alert("Produto não encontrado."); return; }
+      eventData = { ...eventData, ...freshSnap.data(), id: freshSnap.id };
+
+      if (eventData.ativo === false) {
+        alert("As vendas desta camisa foram pausadas.");
+        renderEvent();
+        return;
+      }
+
+      const limite = Number(eventData.limiteIngressos) || 0;
+      const vendidos = Number(eventData.ingressosVendidos) || 0;
+      const restantes = Math.max(0, limite - vendidos);
+      if (limite > 0 && qty > restantes) {
+        alert(`Só restam ${restantes} camisa(s) em estoque. Reduza a quantidade.`);
+        renderEvent();
+        return;
+      }
+
+      // estoque por tamanho
+      const demandaPorTamanho = {};
+      for (const sh of shirts) {
+        demandaPorTamanho[sh.tamanho] = (demandaPorTamanho[sh.tamanho] || 0) + 1;
+      }
+      for (const [sz, n] of Object.entries(demandaPorTamanho)) {
+        const rest = restanteTamanho(sz);
+        if (rest < n) {
+          alert(`O tamanho ${sz} só tem ${rest === 0 ? "nenhuma" : rest} unidade(s) disponível(is). Ajuste as escolhas.`);
+          renderShirts();
+          return;
+        }
+      }
+
+      const base = Number(eventData.valor) || 0;
+      const total = qty * base;
+      if (total <= 0) {
+        alert("O preço da camisa ainda não foi configurado.\n\nDefina o \"Valor base\" do produto no painel /admin.");
+        renderEvent();
+        return;
+      }
+
+      // Cada camisa vira um "participante" — o backend já trata camisetas
+      // por tamanho (events.vendidoCamisetas) e o /admin lê tudo.
+      const participantes = shirts.map(sh => ({
+        nome:            sh.nome || buyer.nome,
+        email:           buyer.email,
+        telefone:        buyer.telefone,
+        cidade:          buyer.cidade,
+        comunidade:      "",
+        pastoral:        "",
+        endereco:        "",
+        genero:          sh.genero,
+        desejaCamiseta:  true,
+        tamanhoCamiseta: sh.tamanho
+      }));
+
+      const payload = {
+        eventId:        eventData.id,
+        eventSlug:      eventData.slug || DEFAULT_SLUG,
+        eventNome:      eventData.nome || "Camisa do Acampamento",
+        quantidade:     qty,
+        valorTotal:     total,
+        valorUnitario:  base,
+        precoCamiseta:  0,
+        comCamiseta:    qty,
+        participantes:  participantes,
+        titulo:         `Camisas do Acampamento — ${qty} camisa(s)`,
+        descricao:      `${qty} camisa(s) do acampamento`,
+        payer: {
+          name:  buyer.nome,
+          email: buyer.email,
+          phone: buyer.telefone
+        }
+      };
+
+      btnTxt.textContent = "Gerando seu QR Code Pix…";
+
+      const resp = await fetch(`${API_BASE_URL}/api/criar-pix`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error(await parseApiError(resp));
+      const data = await resp.json();
+      if (!data.qrCodeBase64 || !data.qrCodeText || !data.pendingCheckoutId) {
+        throw new Error("Resposta inválida do servidor Pix.");
+      }
+
+      try {
+        localStorage.setItem("pix:" + data.pendingCheckoutId, JSON.stringify({
+          qrCodeBase64: data.qrCodeBase64,
+          qrCodeText:   data.qrCodeText,
+          ticketUrl:    data.ticketUrl || "",
+          paymentId:    data.paymentId,
+          expiresAt:    data.expiresAt,
+          valor:        data.valor,
+          eventNome:    eventData.nome || "Camisa do Acampamento",
+          ts:           Date.now()
+        }));
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id:     data.pendingCheckoutId,
+          ts:     Date.now(),
+          slug:   eventData.slug || DEFAULT_SLUG,
+          metodo: "pix"
+        }));
+      } catch (err) {
+        console.warn("localStorage indisponível:", err);
+      }
+
+      navegando = true;
+      location.replace("/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId));
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível gerar o Pix: " + (err.message || err));
+    } finally {
+      if (!navegando) {
+        btn.disabled = false;
+        btnTxt.textContent = "Pagar com Pix";
+      }
+    }
+  });
+
+  /* ------- inicia ------- */
+  loadEvent();
+</script>
+</body>
+</html>
