@@ -358,10 +358,13 @@
         b.addEventListener("click", () => {
           const slug = b.getAttribute("data-link");
           /* URL pública do evento: usa o rewrite limpo da página dedicada.
-             Eventos cujo slug contém "camis" abrem a loja de camisas (/camizas);
-             os demais abrem a página padrão de inscrição (/mulheres).
-             Ambas as páginas leem o slug por DEFAULT_SLUG e/ou ?evento=<slug>. */
-          const pagina = /camis/i.test(slug) ? "camizas" : "mulheres";
+             - slug com "camis"          -> loja de camisas (/camizas)
+             - slug com "homen" ou "hdh" -> encontro dos homens (/homens)
+             - os demais                 -> página padrão de inscrição (/mulheres)
+             Todas as páginas leem o slug por DEFAULT_SLUG e/ou ?evento=<slug>. */
+          const pagina = /camis/i.test(slug) ? "camizas"
+                       : /homen|hdh/i.test(slug) ? "homens"
+                       : "mulheres";
           const url = `${location.origin}/${pagina}?evento=${encodeURIComponent(slug)}`;
           try { navigator.clipboard?.writeText(url); } catch {}
           alert("Link copiado:\n" + url);

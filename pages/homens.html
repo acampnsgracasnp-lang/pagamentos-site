@@ -1,0 +1,1756 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+<meta name="description" content="Imersão HDH. 11 de julho. Inscrições abertas.">
+<meta name="theme-color" content="#0e110d">
+<title>Imersão HDH — Inscrições</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=Manrope:wght@300..800&display=swap" rel="stylesheet">
+
+<!-- Firebase (mesmo projeto do pagamentos-site) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<style>
+  /* =========================================================
+     VARIÁVEIS — paleta HDH escura: grafite / verde-limão / prata
+     ========================================================= */
+  :root{
+    --paper:        #0e110d;
+    --paper-warm:   #161a12;
+    --blush:        #1b2016;   /* superfície escura */
+    --blush-soft:   #20261a;
+    --surface:      #161a12;
+    --surface-2:    #1d2218;
+    --surface-3:    #252c1d;
+
+    --rose:         #bdee3a;   /* acento principal = verde-limão */
+    --rose-deep:    #8bbf24;
+    --wine:         #eef2e6;   /* títulos (claro) */
+    --gold:         #c7a85e;
+    --gold-soft:    #d9bf8c;
+    --silver:       #cfd4c8;
+    --ink:          #e3e8da;   /* corpo de texto claro */
+    --muted:        #949d86;
+    --line:         #2c3322;
+
+    --radius-sm:  10px;
+    --radius:     18px;
+    --radius-lg:  28px;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.4), 0 2px 10px rgba(0,0,0,.35);
+    --shadow:    0 6px 20px rgba(0,0,0,.45), 0 18px 50px rgba(0,0,0,.40);
+    --shadow-lg: 0 16px 40px rgba(0,0,0,.55), 0 40px 90px rgba(0,0,0,.50);
+
+    --font-serif: "Fraunces", "Cormorant Garamond", Georgia, serif;
+    --font-sans:  "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--paper);
+    background-image:
+      radial-gradient(1200px 600px at 8% -10%, rgba(189,238,58,.10), transparent 60%),
+      radial-gradient(900px 520px at 112% 8%, rgba(139,191,36,.08), transparent 60%),
+      radial-gradient(700px 500px at 50% 120%, rgba(199,168,94,.06), transparent 60%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+  img{ max-width:100%; display:block; }
+  button{ font: inherit; cursor: pointer; }
+  a{ color: var(--rose); }
+  ::selection{ background: rgba(189,238,58,.3); color:#fff; }
+  ::placeholder{ color: var(--muted); opacity:.85; }
+
+  .hidden{ display:none !important; }
+  .text-center{ text-align:center; }
+
+  /* =========================================================
+     TOPBAR
+     ========================================================= */
+  .topbar{
+    position: sticky; top:0; z-index:50;
+    background: rgba(14,17,13,.82);
+    backdrop-filter: saturate(140%) blur(14px);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+    border-bottom: 1px solid rgba(44,51,34,.9);
+  }
+  .topbar-inner{
+    max-width: 1120px; margin: 0 auto;
+    padding: 14px 22px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: .02em;
+    color: var(--wine);
+  }
+  .brand-mark{
+    width: 34px; height: 34px;
+    display:grid; place-items:center;
+    border-radius: 9px;
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    color: #10140b;
+    font-family: var(--font-sans);
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: .02em;
+    box-shadow: 0 0 18px rgba(189,238,58,.35);
+  }
+  .trust-pill{
+    display:inline-flex; align-items:center; gap:7px;
+    font-size: 12.5px; font-weight: 600;
+    color: var(--ink);
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 7px 12px;
+    border-radius: 999px;
+  }
+  .trust-pill svg{ color: var(--rose); }
+
+  /* =========================================================
+     CONTAINER
+     ========================================================= */
+  .container{
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 32px 22px 80px;
+  }
+
+  /* =========================================================
+     LOADING / ERROR STATE
+     ========================================================= */
+  .state-card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 64px 32px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    margin-top: 40px;
+  }
+  .spinner{
+    width: 44px; height: 44px;
+    border: 3px solid var(--surface-3);
+    border-top-color: var(--rose);
+    border-radius: 50%;
+    margin: 0 auto 18px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin{ to { transform: rotate(360deg);} }
+  .state-card p{ color: var(--muted); margin: 0; }
+
+  /* =========================================================
+     HERO
+     ========================================================= */
+  .hero{
+    position: relative;
+    margin-top: 24px;
+    padding: 56px 28px 48px;
+    background:
+      linear-gradient(180deg, rgba(28,33,22,.85), rgba(18,21,15,.65));
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    text-align: center;
+  }
+  .hero::before,
+  .hero::after{
+    content:"";
+    position: absolute;
+    width: 340px; height: 340px;
+    border-radius: 50%;
+    filter: blur(70px);
+    opacity: .5;
+    pointer-events:none;
+  }
+  .hero::before{
+    top:-130px; left:-110px;
+    background: radial-gradient(circle, var(--rose) 0%, transparent 70%);
+  }
+  .hero::after{
+    bottom:-150px; right:-130px;
+    background: radial-gradient(circle, var(--gold) 0%, transparent 70%);
+  }
+  .hero-ornament{
+    position: absolute; pointer-events:none;
+    color: var(--rose);
+    opacity: .22;
+  }
+  .hero-ornament.tl{ top: 18px; left: 18px; width: 70px; }
+  .hero-ornament.br{ bottom: 18px; right: 18px; width: 70px; transform: rotate(180deg); }
+
+  .hero-eyebrow{
+    position: relative; z-index: 2;
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--rose);
+    font-weight: 700;
+    margin-bottom: 22px;
+  }
+  .hero-eyebrow::before,
+  .hero-eyebrow::after{
+    content:""; width:28px; height:1px; background: var(--rose); opacity:.5;
+  }
+  .hero h1{
+    position: relative; z-index: 2;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(34px, 6vw, 60px);
+    line-height: 1.05;
+    letter-spacing: -.01em;
+    color: var(--wine);
+    margin: 0 0 4px;
+    font-variation-settings: "opsz" 144, "SOFT" 60;
+  }
+  .hero h1 .strong{
+    display:block;
+    font-style: normal;
+    font-weight: 700;
+    font-size: clamp(40px, 7.2vw, 78px);
+    color: var(--rose);
+    letter-spacing: -.02em;
+    margin-top: 4px;
+    text-shadow: 0 0 32px rgba(189,238,58,.35);
+  }
+  .hero-sub{
+    position: relative; z-index: 2;
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--muted);
+    font-size: clamp(15px, 2.2vw, 19px);
+    max-width: 600px;
+    margin: 18px auto 0;
+  }
+  .hero-divider{
+    position: relative; z-index: 2;
+    display:flex; align-items:center; justify-content:center; gap: 14px;
+    margin: 28px auto 0;
+  }
+  .hero-divider .bar{ width: 60px; height: 1px; background: var(--gold); opacity:.6; }
+  .hero-divider svg{ color: var(--gold); width: 18px; height: 18px; opacity: .9; }
+
+  .hero-status{
+    position: relative; z-index: 2;
+    display: inline-flex; align-items:center; gap: 8px;
+    margin-top: 22px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    box-shadow: var(--shadow-sm);
+  }
+  .pulse-dot{
+    width: 8px; height: 8px;
+    background: #2eb872;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(46,184,114,.6);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%   { box-shadow: 0 0 0 0 rgba(46,184,114,.6); }
+    70%  { box-shadow: 0 0 0 10px rgba(46,184,114,0); }
+    100% { box-shadow: 0 0 0 0 rgba(46,184,114,0); }
+  }
+
+  /* POSTER do evento (imagem oficial) */
+  .hero-poster{
+    position: relative; z-index: 2;
+    margin: 34px auto 0;
+    max-width: 380px;
+    border-radius: var(--radius);
+    padding: 8px;
+    background: linear-gradient(135deg, rgba(189,238,58,.5), rgba(139,191,36,.15));
+    box-shadow: 0 0 50px rgba(189,238,58,.18), var(--shadow-lg);
+  }
+  .hero-poster img{
+    width: 100%;
+    border-radius: 14px;
+    display: block;
+  }
+
+  /* =========================================================
+     EVENT INFO STRIP
+     ========================================================= */
+  .info-strip{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .info-cell{
+    background: var(--surface);
+    padding: 22px 20px;
+    text-align: center;
+  }
+  .info-cell.highlight{
+    background: linear-gradient(135deg, var(--rose-deep), var(--rose));
+    color: #10140b;
+  }
+  .info-cell.highlight .info-label{ color: rgba(16,20,11,.62); }
+  .info-cell .info-label{
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .info-cell .info-value{
+    font-family: var(--font-serif);
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--wine);
+    line-height: 1.25;
+  }
+  .info-cell.highlight .info-value{ color: #10140b; }
+  .info-cell .info-value small{
+    display:block;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    color: inherit;
+    opacity: .7;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  @media (max-width: 720px){
+    .info-strip{ grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* =========================================================
+     SECTION / CARD
+     ========================================================= */
+  .section{ margin-top: 56px; }
+  .section-header{ text-align: center; margin-bottom: 28px; }
+  .section-eyebrow{
+    font-size: 11px;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--rose);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .section-title{
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(28px, 4vw, 40px);
+    color: var(--wine);
+    margin: 0;
+    line-height: 1.15;
+  }
+  .section-sub{
+    color: var(--muted);
+    max-width: 580px;
+    margin: 12px auto 0;
+    font-size: 15px;
+  }
+
+  .card{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 36px 32px;
+    box-shadow: var(--shadow);
+  }
+  @media (max-width: 600px){
+    .card{ padding: 26px 20px; border-radius: var(--radius); }
+  }
+
+  /* =========================================================
+     SOBRE
+     ========================================================= */
+  .about-card{
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 0;
+    overflow: hidden;
+    padding: 0;
+  }
+  .about-text{ padding: 44px 40px; }
+  .about-text p{
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-style: italic;
+    color: var(--ink);
+    line-height: 1.65;
+    margin: 0 0 16px;
+  }
+  .about-text p:last-child{ margin-bottom:0; }
+  .about-text .scripture{
+    margin-top: 24px;
+    padding-left: 18px;
+    border-left: 2px solid var(--gold);
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--rose);
+    font-size: 15.5px;
+  }
+  .about-text .scripture cite{
+    display:block;
+    font-style: normal;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 8px;
+    font-weight: 600;
+  }
+  .about-visual{
+    background: linear-gradient(135deg, var(--surface-3) 0%, var(--surface) 100%);
+    position: relative;
+    min-height: 320px;
+    display: grid; place-items: center;
+    padding: 30px;
+    overflow: hidden;
+  }
+  .about-visual::before{
+    content:"";
+    position:absolute; inset: 0;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(189,238,58,.14), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(199,168,94,.14), transparent 50%);
+  }
+  .about-visual svg{ position: relative; }
+  @media (max-width: 820px){
+    .about-card{ grid-template-columns: 1fr; }
+    .about-visual{ min-height: 220px; order: -1; }
+    .about-text{ padding: 32px 26px; }
+  }
+
+  /* =========================================================
+     CRONOGRAMA / DESTAQUES
+     ========================================================= */
+  .detail-grid{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+  }
+  @media (max-width: 760px){ .detail-grid{ grid-template-columns: 1fr; } }
+  .detail-item{
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px 22px;
+    box-shadow: var(--shadow-sm);
+  }
+  .detail-item .detail-icon{
+    width: 42px; height: 42px;
+    display:grid; place-items:center;
+    border-radius: 11px;
+    background: var(--surface-3);
+    color: var(--rose);
+    margin-bottom: 14px;
+  }
+  .detail-item h3{
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 19px;
+    margin: 0 0 4px;
+    color: var(--wine);
+  }
+  .detail-item p{ margin: 0; font-size: 14px; color: var(--muted); }
+
+  /* =========================================================
+     FORM
+     ========================================================= */
+  .form-card{ padding: 0; overflow: hidden; }
+  .form-head{
+    background: linear-gradient(135deg, #12150e, #243016);
+    color: #fff;
+    padding: 32px 36px;
+    position: relative;
+    overflow: hidden;
+    border-bottom: 1px solid var(--line);
+  }
+  .form-head::after{
+    content:"";
+    position:absolute; right:-40px; top:-40px;
+    width: 220px; height: 220px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(189,238,58,.22), transparent 70%);
+  }
+  .form-head h2{
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 30px;
+    margin: 0 0 6px;
+    color: #fff;
+  }
+  .form-head p{ margin: 0; color: rgba(238,242,230,.72); font-size: 14.5px; }
+  .form-body{ padding: 36px; }
+  @media (max-width: 600px){
+    .form-head{ padding: 26px 22px; }
+    .form-head h2{ font-size: 24px; }
+    .form-body{ padding: 26px 20px; }
+  }
+
+  .form-section{
+    margin-bottom: 36px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--line);
+  }
+  .form-section:last-child{ border-bottom: none; margin-bottom: 0; padding-bottom: 0;}
+  .form-section-title{
+    display:flex; align-items:center; gap: 14px;
+    margin-bottom: 22px;
+  }
+  .form-section-title .num{
+    width: 32px; height: 32px;
+    display:grid; place-items:center;
+    border-radius: 50%;
+    background: var(--surface-3);
+    color: var(--rose);
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .form-section-title h3{
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--wine);
+    margin: 0;
+  }
+
+  /* Quantidade */
+  .qty-control{
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px;
+  }
+  .qty-btn{
+    width: 42px; height: 42px;
+    border: none;
+    background: var(--surface-3);
+    border-radius: 50%;
+    color: var(--rose);
+    font-size: 22px;
+    font-weight: 500;
+    display:grid; place-items:center;
+    transition: transform .15s, background .15s, color .15s;
+    box-shadow: var(--shadow-sm);
+  }
+  .qty-btn:hover{ background: var(--rose); color: #10140b; transform: scale(1.05);}
+  .qty-btn:disabled{ opacity: .35; cursor: not-allowed; }
+  .qty-btn:disabled:hover{ background: var(--surface-3); color: var(--rose); transform:none; }
+  .qty-value{
+    min-width: 56px;
+    text-align: center;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--wine);
+  }
+  .qty-hint{ margin-top: 10px; font-size: 13px; color: var(--muted); }
+
+  /* Participantes */
+  .participant{
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 26px 24px;
+    margin-bottom: 18px;
+    position: relative;
+  }
+  .participant-head{
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .participant-head .badge{
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    color: #10140b;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 700;
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+  .participant-head h4{
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--wine);
+    margin: 0;
+  }
+
+  .grid-2{ display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 560px){ .grid-2{ grid-template-columns: 1fr; } }
+
+  .field{ margin-bottom: 16px; }
+  .field:last-child{ margin-bottom: 0;}
+  .field label{
+    display:block;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    color: var(--wine);
+    margin-bottom: 7px;
+  }
+  .field label .req{ color: var(--rose); margin-left: 2px;}
+  .field label .field-optional{ color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 4px; }
+  .field input,
+  .field textarea,
+  .field select{
+    width: 100%;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    color: var(--ink);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field textarea{ resize: vertical; min-height: 80px; }
+  .field input:focus,
+  .field textarea:focus,
+  .field select:focus{
+    outline: none;
+    border-color: var(--rose);
+    box-shadow: 0 0 0 4px rgba(189,238,58,.16);
+  }
+  .field-hint{ font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  /* TOTAL */
+  .total-box{
+    margin-top: 28px;
+    background: linear-gradient(135deg, var(--surface-2), var(--surface-3));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    flex-wrap: wrap;
+  }
+  .total-box .total-label{
+    font-size: 11.5px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .total-box .total-break{ color: var(--muted); font-size: 13.5px; margin-top: 4px; }
+  .total-box .total-fee-note{
+    margin-top: 10px;
+    font-size: 12px;
+    color: #7fd99f;
+    font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .total-box .total-fee-note::before{
+    content: "✓";
+    display: inline-grid; place-items: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #2eb872;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .total-box .total-value{
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 38px;
+    color: var(--wine);
+    line-height: 1;
+    letter-spacing: -.01em;
+  }
+  .total-box .total-value small{
+    font-size: 16px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+
+  /* CTA */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap: 10px;
+    padding: 16px 28px;
+    border: none;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+    letter-spacing: .01em;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    color: #10140b;
+    box-shadow: 0 8px 24px rgba(139,191,36,.35), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .btn-primary:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 12px 34px rgba(139,191,36,.45), inset 0 1px 0 rgba(255,255,255,.25);
+  }
+  .btn-primary:active{ transform: translateY(0); }
+  .btn-primary:disabled{ opacity: .55; cursor: not-allowed; transform: none; }
+  .btn-block{ display:flex; width: 100%; }
+  .btn-lg{ padding: 18px 32px; font-size: 16px; }
+
+  /* Trust footer */
+  .trust-row{
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .trust-row .sep{ opacity: .35; }
+  .trust-row .it{ display:inline-flex; align-items:center; gap: 6px; }
+
+  /* ALERTS */
+  .alert{
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+    font-size: 14px;
+    border-left: 3px solid;
+  }
+  .alert-danger{
+    background: rgba(229,90,90,.12);
+    color: #f3c4c4;
+    border-color: #e05a5a;
+  }
+  .alert-warning{
+    background: rgba(199,168,94,.12);
+    color: #e6d2a0;
+    border-color: var(--gold);
+  }
+
+  /* FOOTER */
+  .site-footer{
+    text-align: center;
+    padding: 40px 22px;
+    color: var(--muted);
+    font-size: 13px;
+    border-top: 1px solid var(--line);
+    margin-top: 60px;
+    background: rgba(0,0,0,.25);
+  }
+  .site-footer .org{
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--wine);
+    font-weight: 500;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  /* =========================================================
+     MODAL — escolha do método de pagamento (Pix / Cartão)
+     ========================================================= */
+  .pay-modal{
+    position: fixed; inset: 0; z-index: 999;
+    display: grid; place-items: center;
+    padding: 20px;
+  }
+  .pay-modal.hidden{ display: none; }
+  .pay-modal-backdrop{
+    position: absolute; inset: 0;
+    background: rgba(0,0,0,.7);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: payFadeIn .2s ease-out;
+  }
+  .pay-modal-card{
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    animation: paySlideUp .3s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes payFadeIn{ from{ opacity:0;} to{ opacity:1;} }
+  @keyframes paySlideUp{
+    from{ transform: translateY(20px); opacity:0;}
+    to{ transform: translateY(0); opacity:1;}
+  }
+  .pay-modal-close{
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: none;
+    font-size: 26px; line-height: 1;
+    color: var(--muted);
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    transition: background .15s, color .15s;
+  }
+  .pay-modal-close:hover{ background: var(--surface-3); color: var(--wine); }
+  .pay-modal-head{ text-align: center; margin-bottom: 22px; }
+  .pay-eyebrow{
+    font-size: 11.5px; letter-spacing: .26em;
+    text-transform: uppercase; color: var(--rose);
+    font-weight: 700; margin-bottom: 6px;
+  }
+  .pay-modal-head h3{
+    font-family: var(--font-serif); font-style: italic;
+    font-weight: 400;
+    font-size: 26px; color: var(--wine);
+    margin: 0 0 12px;
+  }
+  .pay-total{ font-weight: 700; font-size: 22px; color: var(--rose); }
+  .pay-modal-body{ display: flex; flex-direction: column; gap: 12px; }
+  .pay-modal-body.hidden{ display: none; }
+  .pay-option{
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 16px;
+    border: 1.5px solid var(--line);
+    background: var(--surface-2);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .15s, box-shadow .15s;
+    text-align: left;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .pay-option:hover:not(:disabled){
+    border-color: var(--rose);
+    background: var(--surface-3);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .pay-option:disabled{ opacity: .55; cursor: wait; }
+  .pay-option-icon{
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .pay-option-body{ flex: 1; }
+  .pay-option-title{ font-weight: 700; font-size: 16px; color: var(--wine); }
+  .pay-option-sub{ font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .pay-option-arrow{ font-size: 22px; color: var(--rose); font-weight: 300; }
+  .pay-modal-loading{
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 28px 14px;
+    color: var(--muted); font-size: 14.5px;
+  }
+  .pay-modal-loading.hidden{ display: none; }
+  .pay-spinner-sm{
+    width: 22px; height: 22px;
+    border: 2.5px solid var(--surface-3);
+    border-top-color: var(--rose);
+    border-radius: 50%;
+    animation: paySpin 1s linear infinite;
+  }
+  @keyframes paySpin{ to{ transform: rotate(360deg);} }
+  .pay-modal-error{
+    background: rgba(229,90,90,.12); color: #f3c4c4;
+    border-left: 3px solid #e05a5a;
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    margin-top: 14px;
+  }
+  .pay-modal-error.hidden{ display: none; }
+  .pay-modal-foot{
+    display: flex; align-items: center; justify-content: center;
+    gap: 7px;
+    margin-top: 22px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">HDH</span>
+      <span>Imersão HDH</span>
+    </div>
+    <span class="trust-pill">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Pagamento seguro
+    </span>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- LOADING STATE -->
+  <div id="loading-state" class="state-card">
+    <div class="spinner"></div>
+    <p>Carregando evento…</p>
+  </div>
+
+  <!-- ERROR STATE -->
+  <div id="error-state" class="state-card hidden">
+    <div class="alert alert-danger" id="error-message">Evento não encontrado.</div>
+    <p>Verifique o link do evento ou entre em contato com o organizador.</p>
+  </div>
+
+  <!-- EVENT STATE -->
+  <div id="event-state" class="hidden">
+
+    <!-- HERO -->
+    <section class="hero">
+      <svg class="hero-ornament tl" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
+        <path d="M50 8 L58 38 L88 46 L58 54 L50 84 L42 54 L12 46 L42 38 Z" opacity=".7"/>
+      </svg>
+      <svg class="hero-ornament br" viewBox="0 0 100 100" fill="currentColor" aria-hidden="true">
+        <path d="M50 8 L58 38 L88 46 L58 54 L50 84 L42 54 L12 46 L42 38 Z" opacity=".7"/>
+      </svg>
+
+      <div class="hero-eyebrow">
+        <span id="hero-eyebrow-text">Imersão · HDH · 2026</span>
+      </div>
+
+      <h1>
+        <span>Imersão</span>
+        <span class="strong">HDH</span>
+      </h1>
+
+      <div class="hero-divider">
+        <span class="bar"></span>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2 L14 9 L21 12 L14 15 L12 22 L10 15 L3 12 L10 9 Z"/></svg>
+        <span class="bar"></span>
+      </div>
+
+      <p class="hero-sub" id="event-subtitle">
+        Uma imersão de fé, batalha espiritual e renovação — de homem para homem. Um dia inteiro de encontro com Deus.
+      </p>
+
+      <div class="hero-status">
+        <span class="pulse-dot"></span>
+        <span>Inscrições abertas</span>
+      </div>
+
+      <!-- POSTER OFICIAL -->
+      <div class="hero-poster">
+        <img src="/images/Encontro_dos_homens.jpeg" alt="Imersão HDH">
+      </div>
+    </section>
+
+    <!-- INFO STRIP -->
+    <div class="info-strip">
+      <div class="info-cell">
+        <div class="info-label">Data</div>
+        <div class="info-value" id="event-date">11 de julho<small>12h às 00h</small></div>
+      </div>
+      <div class="info-cell">
+        <div class="info-label">Local</div>
+        <div class="info-value" id="event-location">Sítio Acampamento<small>Novo Progresso · PA</small></div>
+      </div>
+      <div class="info-cell highlight">
+        <div class="info-label">Investimento</div>
+        <div class="info-value" id="event-price">R$ 150<small>por participante</small></div>
+      </div>
+      <div class="info-cell">
+        <div class="info-label">Vagas</div>
+        <div class="info-value" id="event-remaining">—<small>restantes</small></div>
+      </div>
+    </div>
+
+    <!-- SOBRE O EVENTO -->
+    <section class="section">
+      <div class="card about-card">
+        <div class="about-text">
+          <p>Um encontro feito por homens, para homens. Um espaço para fortalecer a fé, romper correntes e assumir o chamado de viver como homem de honra.</p>
+          <p>Será um dia de imersão, oração, partilha e renovação — em comunhão com irmãos de várias paróquias e movimentos.</p>
+          <div class="scripture">
+            "Vigiai, estai firmes na fé, portai-vos varonilmente e sede fortes."
+            <cite>1 Coríntios 16,13</cite>
+          </div>
+        </div>
+        <div class="about-visual">
+          <!-- Brasão / escudo com cruz -->
+          <svg width="200" height="220" viewBox="0 0 200 220" fill="none" aria-hidden="true">
+            <path d="M100 16 L172 44 V112 C172 162 138 192 100 206 C62 192 28 162 28 112 V44 Z"
+                  fill="none" stroke="#bdee3a" stroke-width="2.5" opacity=".85"/>
+            <path d="M100 30 L158 52 V110 C158 152 130 178 100 190 C70 178 42 152 42 110 V52 Z"
+                  fill="rgba(189,238,58,.06)" stroke="#8bbf24" stroke-width="1.2" opacity=".7"/>
+            <g stroke="#cfd4c8" stroke-width="6" stroke-linecap="round" opacity=".95">
+              <line x1="100" y1="64" x2="100" y2="150"/>
+              <line x1="74" y1="92" x2="126" y2="92"/>
+            </g>
+            <circle cx="100" cy="92" r="44" fill="none" stroke="#c7a85e" stroke-width="1" opacity=".5"/>
+            <g fill="#bdee3a" opacity=".8">
+              <circle cx="100" cy="158" r="3"/>
+              <circle cx="84" cy="150" r="2"/>
+              <circle cx="116" cy="150" r="2"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- DESTAQUES -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-eyebrow">O que te espera</div>
+        <h2 class="section-title">Um dia de imersão</h2>
+        <p class="section-sub">Da abertura ao encerramento, uma jornada pensada para o homem que quer crescer na fé.</p>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-item">
+          <div class="detail-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+          </div>
+          <h3>12h às 00h</h3>
+          <p>Um dia completo de pregações, louvor, momentos de oração e adoração.</p>
+        </div>
+        <div class="detail-item">
+          <div class="detail-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L4 6 v6 c0 5 4 8 8 10 4-2 8-5 8-10 V6 Z"/></svg>
+          </div>
+          <h3>Batalha espiritual</h3>
+          <p>Mensagens fortes sobre identidade, propósito e a luta do homem de fé.</p>
+        </div>
+        <div class="detail-item">
+          <div class="detail-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          </div>
+          <h3>Comunhão entre irmãos</h3>
+          <p>Refeição, partilha e fraternidade com homens de várias comunidades.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOQUEIO -->
+    <div id="event-blocked" class="alert alert-warning hidden"></div>
+
+    <!-- FORMULÁRIO -->
+    <section class="section">
+      <form id="registration-form" class="card form-card" novalidate>
+
+        <div class="form-head">
+          <h2>Faça sua inscrição</h2>
+          <p>Preencha os dados de cada participante. Tudo o que precisamos para emitir sua confirmação está aqui.</p>
+        </div>
+
+        <div class="form-body">
+
+          <!-- 1. QUANTIDADE -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <div class="num">1</div>
+              <h3>Quantas inscrições?</h3>
+            </div>
+            <div class="qty-control" role="group" aria-label="Quantidade de inscrições">
+              <button type="button" class="qty-btn" id="qty-minus" aria-label="Diminuir">−</button>
+              <span class="qty-value" id="qty-value">1</span>
+              <button type="button" class="qty-btn" id="qty-plus" aria-label="Aumentar">+</button>
+            </div>
+            <div class="qty-hint" id="qty-hint">Você pode inscrever vários homens em uma única transação.</div>
+          </div>
+
+          <!-- 2. PARTICIPANTES -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <div class="num">2</div>
+              <h3>Dados dos participantes</h3>
+            </div>
+            <div id="participants-container"></div>
+          </div>
+
+          <!-- 3. TOTAL E PAGAMENTO -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <div class="num">3</div>
+              <h3>Confirmação e pagamento</h3>
+            </div>
+
+            <div class="total-box">
+              <div>
+                <div class="total-label">Total a pagar</div>
+                <div class="total-break" id="total-breakdown">1 × R$ 150,00</div>
+                <div class="total-fee-note">Valor final — taxa do Pix já incluída. Você não paga nada além disso.</div>
+              </div>
+              <div class="total-value" id="total-value">R$ 150<small>,00</small></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-submit" style="margin-top: 22px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 L22 12 L12 22 L2 12 Z"/><path d="M8 8 L16 16"/><path d="M16 8 L8 16"/></svg>
+              <span id="btn-submit-text">Pagar com Pix</span>
+            </button>
+
+            <div class="trust-row">
+              <span class="it">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Conexão segura
+              </span>
+              <span class="sep">•</span>
+              <span>Processado pelo Mercado Pago</span>
+              <span class="sep">•</span>
+              <span class="it">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                Pagamento via PIX
+              </span>
+              <span class="sep">•</span>
+              <span>Sem taxa extra para você</span>
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="org">Centro de Evangelização Nossa Sra. das Graças</div>
+  <div>Imersão HDH · Novo Progresso/PA · © 2026</div>
+</footer>
+
+<!-- ====================================================
+     MODAL — escolha do método de pagamento (Pix ou Cartão)
+     ==================================================== -->
+<div id="pay-modal" class="pay-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pay-modal-title" aria-hidden="true">
+  <div class="pay-modal-backdrop" id="pay-modal-backdrop"></div>
+  <div class="pay-modal-card">
+    <button type="button" class="pay-modal-close" id="pay-modal-close" aria-label="Fechar">×</button>
+
+    <div class="pay-modal-head">
+      <div class="pay-eyebrow">Última etapa</div>
+      <h3 id="pay-modal-title">Como você quer pagar?</h3>
+      <div class="pay-total" id="pay-modal-total">R$ 0,00</div>
+    </div>
+
+    <div class="pay-modal-body" id="pay-modal-body">
+      <button type="button" class="pay-option" id="pay-pix" data-method="pix">
+        <div class="pay-option-icon" style="background: linear-gradient(135deg, #2eb872, #1f7a4d);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2 L22 12 L12 22 L2 12 Z"/><path d="M8 8 L16 16"/><path d="M16 8 L8 16"/>
+          </svg>
+        </div>
+        <div class="pay-option-body">
+          <div class="pay-option-title">PIX</div>
+          <div class="pay-option-sub">QR Code instantâneo, sem sair desta página</div>
+        </div>
+        <div class="pay-option-arrow">→</div>
+      </button>
+
+      <button type="button" class="pay-option" id="pay-cartao" data-method="cartao">
+        <div class="pay-option-icon" style="background: linear-gradient(135deg, var(--rose), var(--rose-deep));">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#10140b" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+        </div>
+        <div class="pay-option-body">
+          <div class="pay-option-title">Cartão de crédito ou débito</div>
+          <div class="pay-option-sub">Em até 12 parcelas, processado pelo Mercado Pago</div>
+        </div>
+        <div class="pay-option-arrow">→</div>
+      </button>
+    </div>
+
+    <div class="pay-modal-loading hidden" id="pay-modal-loading">
+      <div class="pay-spinner-sm"></div>
+      <span id="pay-modal-loading-text">Processando…</span>
+    </div>
+
+    <div class="pay-modal-error hidden" id="pay-modal-error"></div>
+
+    <div class="pay-modal-foot">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Pagamento processado com segurança pelo Mercado Pago
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     SCRIPTS — Firebase + lógica do formulário
+     Compatível com o backend do pagamentos-site (api/criar-pix)
+     ========================================================= -->
+<script>
+  /* firebaseConfig do projeto pagamentos-site (Firebase) */
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCrrTLJMWve_8mNptzAiMxz5ejTFE58GXA",
+    authDomain:        "pagamentos-site.firebaseapp.com",
+    projectId:         "pagamentos-site",
+    storageBucket:     "pagamentos-site.firebasestorage.app",
+    messagingSenderId: "350551469871",
+    appId:             "1:350551469871:web:98ef3105c2590f9df23bda",
+    measurementId:     "G-DR9Z41XCZN"
+  };
+  // URL da Vercel que hospeda /api/criar-pix e /api/criar-preferencia
+  const API_BASE_URL = "https://pagamentos-site.vercel.app";
+  // Public Key Mercado Pago (produção) — opcional para Checkout Pro
+  const MERCADO_PAGO_PUBLIC_KEY = "APP_USR-cdcc85cf-78f3-475e-a39d-d301180c4c12";
+
+  // Slug do evento (igual ao Firestore). Pode vir por ?evento=homens
+  const DEFAULT_SLUG = "homens";
+
+  /* ------- inicializa Firebase (guard contra double-init) ------- */
+  if (typeof firebase !== "undefined" && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = (typeof firebase !== "undefined" && firebase.apps.length) ? firebase.firestore() : null;
+
+  /* ------- helpers ------- */
+  const $ = (id) => document.getElementById(id);
+  const fmtBRL = (n) => "R$ " + Number(n).toFixed(2).replace(".", ",");
+  const fmtBRLSplit = (n) => {
+    const [a, b] = Number(n).toFixed(2).split(".");
+    return { reais: "R$ " + a, cents: "," + b };
+  };
+
+  /* ------- estado -------
+     Imersão HDH: inscrição única de R$ 150 (sem camiseta).
+     Taxa do Pix JÁ embutida — o participante paga o valor cheio.
+     eventData usa os MESMOS nomes de campo gravados pelo admin
+     (events.dataEvento, events.local, events.valor, events.limiteIngressos…). */
+  let eventData = {
+    id: null,
+    slug: DEFAULT_SLUG,
+    nome: "Imersão HDH",
+    valor: 150,                                // valor da inscrição
+    precoCamiseta: 0,                          // sem camiseta neste evento
+    limiteIngressos: 250,
+    ingressosVendidos: 0,
+    exigeCamiseta: false,                      // este evento NÃO tem camiseta
+    ativo: true,
+    dataEvento: "2026-07-11",
+    local: "Sítio Acampamento — Novo Progresso/PA",
+    descricao: "",
+    bannerUrl: ""
+  };
+  let qty = 1;
+
+  /* =========================================================
+     CARREGAMENTO DO EVENTO
+     ========================================================= */
+  async function loadEvent(){
+    // Recuperação automática: se o participante iniciou um pagamento
+    // recentemente e voltou pra cá, checamos o status no Firestore e
+    // redirecionamos pra /sucesso ou /pendente.
+    try {
+      const raw = localStorage.getItem("lastCheckout");
+      if (raw && db) {
+        const last = JSON.parse(raw);
+        const idadeMs = Date.now() - (Number(last.ts) || 0);
+        // Janela de 30 minutos — passa disso, considera fluxo abandonado.
+        if (last && last.id && idadeMs < 30 * 60 * 1000) {
+          const pixData = localStorage.getItem("pix:" + last.id);
+          const snap = await db.collection("registrations").doc(last.id).get();
+          if (snap.exists) {
+            const st = String(snap.data().statusPagamento || "").toLowerCase();
+            if (st === "pago") {
+              localStorage.removeItem("lastCheckout");
+              localStorage.removeItem("pix:" + last.id);
+              location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
+              return;
+            }
+            if (st === "pendente") {
+              location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
+              return;
+            }
+            if (st === "recusado" || st === "cancelado") {
+              localStorage.removeItem("lastCheckout");
+              localStorage.removeItem("pix:" + last.id);
+            }
+          } else if (pixData) {
+            location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
+            return;
+          }
+        } else if (idadeMs >= 30 * 60 * 1000) {
+          localStorage.removeItem("lastCheckout");
+        }
+      }
+    } catch (err) {
+      console.warn("Falha ao verificar checkout pendente:", err);
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("evento") || DEFAULT_SLUG;
+    eventData.slug = slug;
+
+    try {
+      if (db) {
+        const snap = await db.collection("events").where("slug", "==", slug).limit(1).get();
+        if (!snap.empty) {
+          const doc = snap.docs[0];
+          eventData = { ...eventData, ...doc.data(), id: doc.id };
+        }
+      }
+    } catch (err) {
+      console.warn("Firestore indisponível, usando dados padrão.", err);
+    }
+
+    renderEvent();
+  }
+
+  function renderEvent(){
+    $("loading-state").classList.add("hidden");
+    $("event-state").classList.remove("hidden");
+
+    // Data do evento — admin grava em dataEvento (yyyy-mm-dd ou ISO)
+    if (eventData.dataEvento) {
+      try {
+        const raw = String(eventData.dataEvento);
+        const d = new Date(raw.includes("T") ? raw : raw + "T12:00:00");
+        $("event-date").innerHTML = isNaN(d.getTime())
+          ? raw
+          : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+      } catch { $("event-date").innerHTML = eventData.dataEvento; }
+    }
+    if (eventData.local) $("event-location").innerHTML = eventData.local;
+
+    if (eventData.valor) {
+      const base = fmtBRLSplit(eventData.valor);
+      $("event-price").innerHTML = `${base.reais}<small>por participante</small>`;
+    }
+    const restante = Math.max(0, (eventData.limiteIngressos||0) - (eventData.ingressosVendidos||0));
+    if (eventData.limiteIngressos) {
+      $("event-remaining").innerHTML = `${restante}<small>de ${eventData.limiteIngressos}</small>`;
+    }
+
+    // bloqueio: evento pausado pelo admin
+    if (eventData.ativo === false) {
+      const b = $("event-blocked");
+      b.textContent = "As inscrições para este evento estão pausadas no momento.";
+      b.classList.remove("hidden");
+      $("registration-form").classList.add("hidden");
+      return;
+    }
+
+    // bloqueio: vagas totais esgotadas
+    if (eventData.limiteIngressos && restante <= 0) {
+      const b = $("event-blocked");
+      b.textContent = "As inscrições para este evento estão encerradas — o limite de vagas foi atingido.";
+      b.classList.remove("hidden");
+      $("registration-form").classList.add("hidden");
+      return;
+    }
+
+    renderParticipants();
+  }
+
+  /* =========================================================
+     PARTICIPANTES
+     ========================================================= */
+  function participantTemplate(idx){
+    return `
+      <div class="participant" data-idx="${idx}">
+        <div class="participant-head">
+          <span class="badge">Participante ${idx + 1}</span>
+          <h4 id="part-${idx}-name">Preencha os dados</h4>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>Nome completo <span class="req">*</span></label>
+            <input type="text" name="nome-${idx}" required autocomplete="name" placeholder="Ex.: João da Silva">
+          </div>
+          <div class="field">
+            <label>Telefone com DDD <span class="req">*</span></label>
+            <input type="tel" name="telefone-${idx}" required placeholder="(93) 9 8000-0000" inputmode="tel">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>E-mail <span class="req">*</span></label>
+            <input type="email" name="email-${idx}" required placeholder="seu@email.com" autocomplete="email">
+          </div>
+          <div class="field">
+            <label>Cidade</label>
+            <input type="text" name="cidade-${idx}" placeholder="Novo Progresso">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Endereço</label>
+          <input type="text" name="endereco-${idx}" placeholder="Rua, número, bairro">
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>Comunidade / Paróquia</label>
+            <input type="text" name="comunidade-${idx}" placeholder="Ex.: Paróquia São José">
+          </div>
+          <div class="field">
+            <label>Pastoral ou movimento (se houver)</label>
+            <input type="text" name="pastoral-${idx}" placeholder="Ex.: RCC, Pastoral Familiar…">
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderParticipants(){
+    const c = $("participants-container");
+    const current = [...c.querySelectorAll(".participant")];
+    // preserva valores quando re-renderiza
+    const previousValues = current.map((p) => {
+      const data = {};
+      p.querySelectorAll("input").forEach(i => { data[i.name] = i.value; });
+      return data;
+    });
+
+    c.innerHTML = "";
+    for (let i = 0; i < qty; i++) {
+      c.insertAdjacentHTML("beforeend", participantTemplate(i));
+    }
+
+    // restaura valores antigos por índice
+    previousValues.forEach((vals, i) => {
+      if (i >= qty) return;
+      Object.entries(vals).forEach(([name, val]) => {
+        if (!val) return;
+        const fld = c.querySelector(`[name="${name}"]`);
+        if (fld) fld.value = val;
+      });
+    });
+
+    // atualiza header de participante ao digitar o nome
+    c.querySelectorAll("input[name^='nome-']").forEach(input => {
+      input.addEventListener("input", () => {
+        const idx = input.name.split("-")[1];
+        const h = $(`part-${idx}-name`);
+        h.textContent = input.value.trim() || "Preencha os dados";
+      });
+    });
+
+    updateTotal();
+  }
+
+  /* =========================================================
+     QUANTIDADE
+     ========================================================= */
+  $("qty-minus").addEventListener("click", () => {
+    if (qty > 1) { qty--; renderParticipants(); }
+    refreshQtyButtons();
+  });
+  $("qty-plus").addEventListener("click", () => {
+    const max = Math.max(0, (eventData.limiteIngressos||999) - (eventData.ingressosVendidos||0));
+    if (qty < Math.min(10, max || 10)) { qty++; renderParticipants(); }
+    refreshQtyButtons();
+  });
+  function refreshQtyButtons(){
+    $("qty-value").textContent = qty;
+    $("qty-minus").disabled = qty <= 1;
+  }
+
+  /* Soma dinâmica: base × quantidade (sem camiseta neste evento). */
+  function updateTotal(){
+    const base = Number(eventData.valor) || 0;
+    const total = qty * base;
+    const s = fmtBRLSplit(total);
+    $("total-value").innerHTML = `${s.reais}<small>${s.cents}</small>`;
+    $("total-breakdown").textContent = `${qty} × ${fmtBRL(base)}`;
+  }
+
+  /* =========================================================
+     SUBMIT — valida o formulário e gera o Pix.
+     A mesma lógica do pagamentos-site: chama /api/criar-pix,
+     guarda o QR no localStorage e redireciona pra /sucesso.
+     ========================================================= */
+
+  // Contexto do checkout atual (lido pelos handlers do modal).
+  let payContext = null;
+
+  function fmtBRLPretty(n) {
+    return "R$ " + Number(n).toFixed(2).replace(".", ",");
+  }
+
+  function openPayModal(ctx) {
+    payContext = ctx;
+    $("pay-modal-total").textContent = fmtBRLPretty(ctx.total);
+    $("pay-modal-body").classList.remove("hidden");
+    $("pay-modal-loading").classList.add("hidden");
+    $("pay-modal-error").classList.add("hidden");
+    $("pay-pix").disabled = false;
+    $("pay-cartao").disabled = false;
+    const modal = $("pay-modal");
+    modal.classList.remove("hidden");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closePayModal() {
+    const modal = $("pay-modal");
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    $("btn-submit").disabled = false;
+    $("btn-submit-text").textContent = "Continuar para o pagamento";
+  }
+
+  function setModalLoading(text) {
+    $("pay-modal-body").classList.add("hidden");
+    $("pay-modal-error").classList.add("hidden");
+    $("pay-modal-loading").classList.remove("hidden");
+    $("pay-modal-loading-text").textContent = text;
+  }
+
+  function setModalError(msg) {
+    $("pay-modal-loading").classList.add("hidden");
+    $("pay-modal-body").classList.remove("hidden");
+    $("pay-pix").disabled = false;
+    $("pay-cartao").disabled = false;
+    const errEl = $("pay-modal-error");
+    errEl.textContent = msg;
+    errEl.classList.remove("hidden");
+  }
+
+  $("pay-modal-close").addEventListener("click", closePayModal);
+  $("pay-modal-backdrop").addEventListener("click", closePayModal);
+
+  async function parseApiError(resp) {
+    const text = await resp.text();
+    try {
+      const j = JSON.parse(text);
+      return j.error || j.message || (j.details && (j.details.message || JSON.stringify(j.details))) || text.slice(0, 200);
+    } catch {
+      return text.slice(0, 200) || ("HTTP " + resp.status);
+    }
+  }
+
+  // PIX: chama /api/criar-pix, guarda o QR no localStorage e redireciona
+  // pra /sucesso (que mostra o QR + faz polling no Firestore).
+  $("pay-pix").addEventListener("click", async () => {
+    if (!payContext) return;
+    setModalLoading("Gerando seu QR Code Pix…");
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/criar-pix`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payContext.payload)
+      });
+      if (!resp.ok) throw new Error(await parseApiError(resp));
+      const data = await resp.json();
+      if (!data.qrCodeBase64 || !data.qrCodeText || !data.pendingCheckoutId) {
+        throw new Error("Resposta inválida do servidor Pix.");
+      }
+      try {
+        localStorage.setItem("pix:" + data.pendingCheckoutId, JSON.stringify({
+          qrCodeBase64: data.qrCodeBase64,
+          qrCodeText:   data.qrCodeText,
+          ticketUrl:    data.ticketUrl || "",
+          paymentId:    data.paymentId,
+          expiresAt:    data.expiresAt,
+          valor:        data.valor,
+          eventNome:    payContext.eventNome,
+          ts:           Date.now()
+        }));
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id:     data.pendingCheckoutId,
+          ts:     Date.now(),
+          slug:   eventData.slug || "",
+          metodo: "pix"
+        }));
+      } catch (err) {
+        console.warn("localStorage indisponível:", err);
+      }
+      location.replace("/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId));
+    } catch (err) {
+      console.error(err);
+      setModalError("Não foi possível gerar o Pix: " + err.message);
+    }
+  });
+
+  // CARTÃO: chama /api/criar-preferencia (Checkout Pro só com cartão)
+  // e redireciona para o init_point.
+  $("pay-cartao").addEventListener("click", async () => {
+    if (!payContext) return;
+    setModalLoading("Abrindo o pagamento com cartão…");
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/criar-preferencia`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payContext.payload)
+      });
+      if (!resp.ok) throw new Error(await parseApiError(resp));
+      const data = await resp.json();
+      const checkoutUrl = data.init_point || data.sandbox_init_point;
+      if (!checkoutUrl) throw new Error(data.error || "API não retornou link de pagamento.");
+      try {
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id:     data.pendingCheckoutId || "",
+          ts:     Date.now(),
+          slug:   eventData.slug || "",
+          metodo: "cartao"
+        }));
+      } catch {}
+      location.href = checkoutUrl;
+    } catch (err) {
+      console.error(err);
+      setModalError("Não foi possível iniciar o cartão: " + err.message);
+    }
+  });
+
+  $("registration-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = $("btn-submit");
+    const btnTxt = $("btn-submit-text");
+
+    // coleta dados
+    const participants = [];
+    for (let i = 0; i < qty; i++) {
+      const get = (n) => document.querySelector(`[name="${n}-${i}"]`)?.value?.trim() || "";
+      participants.push({
+        nome:        get("nome"),
+        telefone:    get("telefone"),
+        email:       get("email"),
+        endereco:    get("endereco"),
+        cidade:      get("cidade"),
+        comunidade:  get("comunidade"),
+        pastoral:    get("pastoral"),
+        tamanhoCamiseta: ""
+      });
+    }
+
+    // validação básica
+    for (const [i, p] of participants.entries()) {
+      if (!p.nome || !p.telefone || !p.email) {
+        alert(`Preencha os campos obrigatórios do Participante ${i+1}.`);
+        return;
+      }
+    }
+
+    btn.disabled = true;
+    btnTxt.textContent = "Verificando vagas…";
+
+    let navegando = false;
+    try {
+      if (!db || !eventData.id) {
+        alert("Evento não encontrado no Firestore. Crie o evento pelo painel /admin antes de aceitar inscrições.");
+        return;
+      }
+
+      // 1) Recarrega o evento para checar vagas em tempo real (anti-overselling)
+      const freshSnap = await db.collection("events").doc(eventData.id).get();
+      if (!freshSnap.exists) {
+        alert("Evento não encontrado.");
+        return;
+      }
+      eventData = { ...eventData, ...freshSnap.data(), id: freshSnap.id };
+
+      if (eventData.ativo === false) {
+        alert("As inscrições para este evento foram pausadas.");
+        renderEvent();
+        return;
+      }
+
+      const limite = Number(eventData.limiteIngressos) || 0;
+      const vendidos = Number(eventData.ingressosVendidos) || 0;
+      const restantes = Math.max(0, limite - vendidos);
+      if (limite > 0 && qty > restantes) {
+        alert(`Só restam ${restantes} vaga(s) no evento. Reduza a quantidade.`);
+        renderEvent();
+        return;
+      }
+
+      // total = base × quantidade (evento sem camiseta)
+      const base = Number(eventData.valor) || 0;
+      const total = qty * base;
+
+      // Payload comum aos dois endpoints (/api/criar-pix e /api/criar-preferencia).
+      const payload = {
+        eventId:        eventData.id,
+        eventSlug:      eventData.slug || "",
+        eventNome:      eventData.nome || "",
+        quantidade:     qty,
+        valorTotal:     total,
+        valorUnitario:  base,
+        precoCamiseta:  0,
+        comCamiseta:    0,
+        participantes:  participants,
+        titulo:         `Inscrição — ${eventData.nome || "Evento"}`,
+        descricao:      `${qty} inscrição(ões)`,
+        payer: {
+          name:  participants[0]?.nome     || "",
+          email: participants[0]?.email    || "",
+          phone: participants[0]?.telefone || ""
+        }
+      };
+
+      // Cartão desativado — vai direto para Pix.
+      // Para reativar o seletor Pix/Cartão, troque esta chamada por
+      //   openPayModal({ total, payload, eventNome: eventData.nome || "" });
+      btnTxt.textContent = "Gerando seu QR Code Pix…";
+      payContext = { total, payload, eventNome: eventData.nome || "" };
+
+      const resp = await fetch(`${API_BASE_URL}/api/criar-pix`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error(await parseApiError(resp));
+      const data = await resp.json();
+      if (!data.qrCodeBase64 || !data.qrCodeText || !data.pendingCheckoutId) {
+        throw new Error("Resposta inválida do servidor Pix.");
+      }
+      try {
+        localStorage.setItem("pix:" + data.pendingCheckoutId, JSON.stringify({
+          qrCodeBase64: data.qrCodeBase64,
+          qrCodeText:   data.qrCodeText,
+          ticketUrl:    data.ticketUrl || "",
+          paymentId:    data.paymentId,
+          expiresAt:    data.expiresAt,
+          valor:        data.valor,
+          eventNome:    eventData.nome || "",
+          ts:           Date.now()
+        }));
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id:     data.pendingCheckoutId,
+          ts:     Date.now(),
+          slug:   eventData.slug || "",
+          metodo: "pix"
+        }));
+      } catch (err) {
+        console.warn("localStorage indisponível:", err);
+      }
+      navegando = true;
+      location.replace("/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId));
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível gerar o Pix: " + (err.message || err));
+    } finally {
+      if (!navegando) {
+        btn.disabled = false;
+        btnTxt.textContent = "Pagar com Pix";
+      }
+    }
+  });
+
+  /* ------- inicia ------- */
+  loadEvent();
+</script>
+</body>
+</html>
