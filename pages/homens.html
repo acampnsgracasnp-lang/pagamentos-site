@@ -1478,6 +1478,17 @@
 
         <div class="grid-2">
           <div class="field">
+            <label>Nome da esposa <span class="req">*</span></label>
+            <input type="text" name="nomeEsposa-${idx}" required placeholder="Nome completo da esposa">
+          </div>
+          <div class="field">
+            <label>Contato da esposa ou familiar <span class="req">*</span></label>
+            <input type="tel" name="contatoEsposaFamiliar-${idx}" required placeholder="(93) 9 8000-0000" inputmode="tel">
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
             <label>Comunidade / Paróquia</label>
             <input type="text" name="comunidade-${idx}" placeholder="Ex.: Paróquia São José">
           </div>
@@ -1707,6 +1718,8 @@
         email:       get("email"),
         endereco:    get("endereco"),
         cidade:      get("cidade"),
+        nomeEsposa:  get("nomeEsposa"),
+        contatoEsposaFamiliar: get("contatoEsposaFamiliar"),
         comunidade:  get("comunidade"),
         pastoral:    get("pastoral"),
         tamanhoCamiseta: ""
@@ -1715,8 +1728,8 @@
 
     // validação básica
     for (const [i, p] of participants.entries()) {
-      if (!p.nome || !p.telefone || !p.email) {
-        alert(`Preencha os campos obrigatórios do Participante ${i+1}.`);
+      if (!p.nome || !p.telefone || !p.email || !p.nomeEsposa || !p.contatoEsposaFamiliar) {
+        alert(`Preencha todos os campos obrigatórios do Participante ${i+1}, incluindo Nome da esposa e Contato da esposa ou familiar.`);
         return;
       }
     }
