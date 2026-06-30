@@ -839,6 +839,8 @@
           <div><b>Comunidade:</b> ${escapeHTML(p.comunidade || "—")}</div>
           <div><b>Pastoral:</b> ${escapeHTML(p.pastoral || "—")}</div>
           <div><b>Endereço:</b> ${escapeHTML(p.endereco || "—")}</div>
+          <div><b>Nome da esposa:</b> ${escapeHTML(p.nomeEsposa || p.nome_esposa || p.esposaNome || "—")}</div>
+          <div><b>Contato da esposa ou familiar:</b> ${escapeHTML(p.contatoEsposaFamiliar || p.contatoEsposa || p.contatoFamiliar || p.contato_esposa_familiar || "—")}</div>
           ${p.genero ? `<div><b>Modelo da camisa:</b> ${escapeHTML(p.genero)}</div>` : ""}
           <div><b>Camiseta:</b> ${camLabel}</div>
         </div>
@@ -886,7 +888,8 @@
     const rows = [[
       "Data", "Evento", "Status", "Valor Total", "Qtd",
       "Nome", "E-mail", "Telefone", "Cidade", "Comunidade", "Pastoral",
-      "Endereço", "Camiseta", "Tamanho", "Modelo (M/F)",
+      "Endereço", "Nome da esposa", "Contato da esposa ou familiar",
+      "Camiseta", "Tamanho", "Modelo (M/F)",
       "PreferenceId", "PaymentId", "RegistrationId"
     ]];
 
@@ -909,6 +912,8 @@
           p.comunidade || "",
           p.pastoral || "",
           p.endereco || "",
+          p.nomeEsposa || p.nome_esposa || p.esposaNome || "",
+          p.contatoEsposaFamiliar || p.contatoEsposa || p.contatoFamiliar || p.contato_esposa_familiar || "",
           camTxt,
           tamTxt,
           p.genero || "",
