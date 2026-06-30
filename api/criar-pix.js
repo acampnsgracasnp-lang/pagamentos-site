@@ -76,6 +76,8 @@ function sanitizeParticipantes(arr) {
       comunidade: String((p && p.comunidade) || "").trim(),
       pastoral: String((p && p.pastoral) || "").trim(),
       endereco: String((p && p.endereco) || "").trim(),
+      nomeEsposa: String((p && (p.nomeEsposa || p.nome_esposa || p.esposaNome)) || "").trim(),
+      contatoEsposaFamiliar: String((p && (p.contatoEsposaFamiliar || p.contatoEsposa || p.contatoFamiliar || p.contato_esposa_familiar)) || "").trim(),
       genero: genero,
       desejaCamiseta: desejaCamiseta,
       tamanhoCamiseta: desejaCamiseta === false ? "" : tamanho
@@ -164,6 +166,15 @@ module.exports = async function handler(req, res) {
     const tel = sanitized[i].telefone.replace(/\D/g, "");
     if (tel.length < 10) {
       res.status(400).json({ error: `Participante ${i + 1}: telefone inválido.` });
+      return;
+    }
+    if (!sanitized[i].nomeEsposa || sanitized[i].nomeEsposa.length < 3) {
+      res.status(400).json({ error: `Participante ${i + 1}: nome da esposa é obrigatório.` });
+      return;
+    }
+    const contatoEsposa = sanitized[i].contatoEsposaFamiliar.replace(/\D/g, "");
+    if (!sanitized[i].contatoEsposaFamiliar || contatoEsposa.length < 8) {
+      res.status(400).json({ error: `Participante ${i + 1}: contato da esposa ou familiar é obrigatório.` });
       return;
     }
   }
