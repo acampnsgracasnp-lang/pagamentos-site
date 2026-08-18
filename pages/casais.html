@@ -1,0 +1,2144 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5">
+<meta name="description" content="2º Retiro para Casais — um final de semana para fortalecer o amor e a fé.">
+<meta name="theme-color" content="#4a0d19">
+<title>2º Retiro para Casais</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=Manrope:wght@300..800&display=swap" rel="stylesheet">
+
+<!-- Firebase (mantém compatível com o pagamentos-site) -->
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore-compat.js"></script>
+
+<style>
+  /* =========================================================
+     VARIÁVEIS — paleta editorial rosa / vinho / dourado
+     ========================================================= */
+  :root{
+    --paper:        #fbf6ef;
+    --paper-warm:   #f2e6d7;
+    --blush:        #ead5c7;
+    --blush-soft:   #f7e8de;
+    --rose:         #9d293b;
+    --rose-deep:    #6f1526;
+    --wine:         #480d19;
+    --gold:         #bd8a35;
+    --gold-soft:    #dec187;
+    --ink:          #2d1719;
+    --muted:        #80676a;
+    --line:         #e4d3c7;
+
+    --radius-sm:  10px;
+    --radius:     18px;
+    --radius-lg:  28px;
+
+    --shadow-sm: 0 1px 2px rgba(91,24,48,.04), 0 2px 8px rgba(91,24,48,.04);
+    --shadow:    0 4px 16px rgba(91,24,48,.06), 0 16px 48px rgba(91,24,48,.07);
+    --shadow-lg: 0 12px 32px rgba(91,24,48,.10), 0 32px 80px rgba(91,24,48,.10);
+
+    --font-serif: "Fraunces", "Cormorant Garamond", Georgia, serif;
+    --font-sans:  "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  }
+
+  *,*::before,*::after{ box-sizing:border-box; }
+  html{ -webkit-text-size-adjust:100%; }
+  body{
+    margin:0;
+    font-family: var(--font-sans);
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--ink);
+    background: var(--paper);
+    background-image:
+      radial-gradient(1200px 600px at 10% -10%, rgba(184,69,110,.06), transparent 60%),
+      radial-gradient(900px 500px at 110% 10%, rgba(184,147,90,.07), transparent 60%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+  img{ max-width:100%; display:block; }
+  button{ font: inherit; cursor: pointer; }
+  a{ color: var(--rose-deep); }
+
+  .hidden{ display:none !important; }
+  .text-center{ text-align:center; }
+
+  /* =========================================================
+     TOPBAR
+     ========================================================= */
+  .topbar{
+    position: sticky; top:0; z-index:50;
+    background: rgba(251,245,241,.85);
+    backdrop-filter: saturate(140%) blur(14px);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+    border-bottom: 1px solid rgba(232,211,205,.7);
+  }
+  .topbar-inner{
+    max-width: 1120px; margin: 0 auto;
+    padding: 14px 22px;
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+  }
+  .brand{
+    display:flex; align-items:center; gap:10px;
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 18px;
+    letter-spacing: .02em;
+    color: var(--wine);
+  }
+  .brand-mark{
+    width: 32px; height: 32px;
+    display:grid; place-items:center;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    color: var(--paper);
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 17px;
+  }
+  .trust-pill{
+    display:inline-flex; align-items:center; gap:7px;
+    font-size: 12.5px; font-weight: 600;
+    color: var(--wine);
+    background: var(--blush-soft);
+    border: 1px solid var(--line);
+    padding: 7px 12px;
+    border-radius: 999px;
+  }
+  .trust-pill svg{ color: var(--rose); }
+
+  /* =========================================================
+     CONTAINER
+     ========================================================= */
+  .container{
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 32px 22px 80px;
+  }
+
+  /* =========================================================
+     LOADING / ERROR STATE
+     ========================================================= */
+  .state-card{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 64px 32px;
+    text-align: center;
+    box-shadow: var(--shadow-sm);
+    margin-top: 40px;
+  }
+  .spinner{
+    width: 44px; height: 44px;
+    border: 3px solid var(--blush);
+    border-top-color: var(--rose);
+    border-radius: 50%;
+    margin: 0 auto 18px;
+    animation: spin 1s linear infinite;
+  }
+  @keyframes spin{ to { transform: rotate(360deg);} }
+  .state-card p{ color: var(--muted); margin: 0; }
+
+  /* =========================================================
+     HERO — editorial
+     ========================================================= */
+  .hero{
+    position: relative;
+    margin-top: 24px;
+    padding: 56px 28px 48px;
+    background:
+      linear-gradient(180deg, rgba(244,218,220,.55), rgba(252,230,227,.35));
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    text-align: center;
+  }
+  .hero::before,
+  .hero::after{
+    content:"";
+    position: absolute;
+    width: 320px; height: 320px;
+    border-radius: 50%;
+    filter: blur(60px);
+    opacity: .55;
+    pointer-events:none;
+  }
+  .hero::before{
+    top:-120px; left:-100px;
+    background: radial-gradient(circle, var(--rose) 0%, transparent 70%);
+  }
+  .hero::after{
+    bottom:-140px; right:-120px;
+    background: radial-gradient(circle, var(--gold) 0%, transparent 70%);
+  }
+  .hero-ornament{
+    position: absolute; pointer-events:none;
+    color: var(--rose);
+    opacity: .35;
+  }
+  .hero-ornament.tl{ top: 18px; left: 18px; width: 72px; }
+  .hero-ornament.br{ bottom: 18px; right: 18px; width: 72px; transform: rotate(180deg); }
+
+  .hero-eyebrow{
+    position: relative; z-index: 2;
+    display: inline-flex; align-items: center; gap: 10px;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    letter-spacing: .28em;
+    text-transform: uppercase;
+    color: var(--rose-deep);
+    font-weight: 700;
+    margin-bottom: 22px;
+  }
+  .hero-eyebrow::before,
+  .hero-eyebrow::after{
+    content:""; width:28px; height:1px; background: var(--rose-deep); opacity:.5;
+  }
+  .hero h1{
+    position: relative; z-index: 2;
+    font-family: var(--font-serif);
+    font-weight: 400;
+    font-style: italic;
+    font-size: clamp(34px, 6vw, 60px);
+    line-height: 1.05;
+    letter-spacing: -.01em;
+    color: var(--wine);
+    margin: 0 0 4px;
+    font-variation-settings: "opsz" 144, "SOFT" 60;
+  }
+  .hero h1 .strong{
+    display:block;
+    font-style: normal;
+    font-weight: 600;
+    font-size: clamp(40px, 7.2vw, 78px);
+    color: var(--rose-deep);
+    letter-spacing: -.02em;
+    margin-top: 4px;
+  }
+  .hero-sub{
+    position: relative; z-index: 2;
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--muted);
+    font-size: clamp(15px, 2.2vw, 19px);
+    max-width: 580px;
+    margin: 18px auto 0;
+  }
+  .hero-divider{
+    position: relative; z-index: 2;
+    display:flex; align-items:center; justify-content:center; gap: 14px;
+    margin: 28px auto 0;
+  }
+  .hero-divider .bar{ width: 60px; height: 1px; background: var(--gold); opacity:.6; }
+  .hero-divider svg{ color: var(--gold); width: 18px; height: 18px; opacity: .9; }
+
+  .hero-status{
+    position: relative; z-index: 2;
+    display: inline-flex; align-items:center; gap: 8px;
+    margin-top: 22px;
+    background: #fff;
+    border: 1px solid var(--line);
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wine);
+    box-shadow: var(--shadow-sm);
+  }
+  .pulse-dot{
+    width: 8px; height: 8px;
+    background: #2eb872;
+    border-radius: 50%;
+    box-shadow: 0 0 0 0 rgba(46,184,114,.6);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse{
+    0%   { box-shadow: 0 0 0 0 rgba(46,184,114,.6); }
+    70%  { box-shadow: 0 0 0 10px rgba(46,184,114,0); }
+    100% { box-shadow: 0 0 0 0 rgba(46,184,114,0); }
+  }
+
+  /* =========================================================
+     EVENT INFO STRIP
+     ========================================================= */
+  .info-strip{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 18px;
+    box-shadow: var(--shadow-sm);
+  }
+  .info-cell{
+    background: #fff;
+    padding: 22px 20px;
+    text-align: center;
+  }
+  .info-cell.highlight{
+    background: linear-gradient(135deg, var(--rose-deep), var(--rose));
+    color: #fff;
+  }
+  .info-cell.highlight .info-label{ color: rgba(255,255,255,.78); }
+  .info-cell .info-label{
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    font-weight: 700;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .info-cell .info-value{
+    font-family: var(--font-serif);
+    font-size: 19px;
+    font-weight: 500;
+    color: var(--wine);
+    line-height: 1.25;
+  }
+  .info-cell.highlight .info-value{ color: #fff; }
+  .info-cell .info-value small{
+    display:block;
+    font-family: var(--font-sans);
+    font-size: 11.5px;
+    color: inherit;
+    opacity: .7;
+    margin-top: 4px;
+    font-weight: 500;
+  }
+  @media (max-width: 720px){
+    .info-strip{ grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* =========================================================
+     SECTION / CARD
+     ========================================================= */
+  .section{
+    margin-top: 56px;
+  }
+  .section-header{
+    text-align: center;
+    margin-bottom: 28px;
+  }
+  .section-eyebrow{
+    font-size: 11px;
+    letter-spacing: .26em;
+    text-transform: uppercase;
+    color: var(--rose);
+    font-weight: 700;
+    margin-bottom: 8px;
+  }
+  .section-title{
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: clamp(28px, 4vw, 40px);
+    color: var(--wine);
+    margin: 0;
+    line-height: 1.15;
+  }
+  .section-sub{
+    color: var(--muted);
+    max-width: 580px;
+    margin: 12px auto 0;
+    font-size: 15px;
+  }
+
+  .card{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    padding: 36px 32px;
+    box-shadow: var(--shadow);
+  }
+  @media (max-width: 600px){
+    .card{ padding: 26px 20px; border-radius: var(--radius); }
+  }
+
+  /* =========================================================
+     SOBRE
+     ========================================================= */
+  .about-card{
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 0;
+    overflow: hidden;
+    padding: 0;
+  }
+  .about-text{
+    padding: 44px 40px;
+  }
+  .about-text p{
+    font-family: var(--font-serif);
+    font-size: 18px;
+    font-style: italic;
+    color: var(--ink);
+    line-height: 1.65;
+    margin: 0 0 16px;
+  }
+  .about-text p:last-child{ margin-bottom:0; }
+  .about-text .scripture{
+    margin-top: 24px;
+    padding-left: 18px;
+    border-left: 2px solid var(--gold);
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--rose-deep);
+    font-size: 15.5px;
+  }
+  .about-text .scripture cite{
+    display:block;
+    font-style: normal;
+    font-family: var(--font-sans);
+    font-size: 11px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 8px;
+    font-weight: 600;
+  }
+  .about-visual{
+    background: linear-gradient(135deg, var(--blush) 0%, var(--blush-soft) 100%);
+    position: relative;
+    min-height: 320px;
+    display: grid; place-items: center;
+    padding: 30px;
+    overflow: hidden;
+  }
+  .about-visual::before{
+    content:"";
+    position:absolute; inset: 0;
+    background:
+      radial-gradient(circle at 30% 20%, rgba(255,255,255,.5), transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(184,147,90,.18), transparent 50%);
+  }
+  .about-visual svg{ position: relative; }
+  @media (max-width: 820px){
+    .about-card{ grid-template-columns: 1fr; }
+    .about-visual{ min-height: 220px; order: -1; }
+    .about-text{ padding: 32px 26px; }
+  }
+
+  /* =========================================================
+     CAMISETA
+     ========================================================= */
+  .shirt-grid{
+    display: grid;
+    grid-template-columns: 1.1fr .9fr;
+    gap: 32px;
+    align-items: stretch;
+  }
+  @media (max-width: 860px){
+    .shirt-grid{ grid-template-columns: 1fr; }
+  }
+  .shirt-showcase{
+    background: linear-gradient(160deg, #fce6e3 0%, #f4dadc 60%, #ecc4c8 100%);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--line);
+    padding: 36px 28px;
+    position: relative;
+    overflow: hidden;
+    min-height: 380px;
+    display: grid; place-items: center;
+  }
+  .shirt-showcase::before,
+  .shirt-showcase::after{
+    content:"";
+    position:absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.6), transparent 70%);
+    pointer-events:none;
+  }
+  .shirt-showcase::before{ width: 220px; height: 220px; top: -60px; right: -60px; }
+  .shirt-showcase::after{ width: 180px; height: 180px; bottom: -50px; left: -40px; opacity:.6;}
+
+  .shirt-illustration{
+    position: relative;
+    width: 100%; max-width: 360px;
+    aspect-ratio: 1;
+    object-fit: contain;
+    display: block;
+    border-radius: var(--radius);
+  }
+
+  .shirt-side{
+    display: grid;
+    grid-template-rows: auto auto auto;
+    gap: 18px;
+  }
+  .shirt-info-card{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 20px 22px;
+    box-shadow: var(--shadow-sm);
+  }
+  .shirt-info-card h3{
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 500;
+    font-size: 20px;
+    margin: 0 0 4px;
+    color: var(--wine);
+  }
+  .shirt-info-card p{
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+  }
+
+  /* Tabela de tamanhos */
+  .size-table{
+    width:100%;
+    border-collapse: collapse;
+    margin-top: 14px;
+    font-size: 13.5px;
+  }
+  .size-table th{
+    text-align: left;
+    padding: 10px 8px;
+    font-size: 10.5px;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+    border-bottom: 1px solid var(--line);
+  }
+  .size-table td{
+    padding: 10px 8px;
+    border-bottom: 1px solid #f4e3df;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .size-table td:first-child{
+    font-family: var(--font-serif);
+    font-weight: 600;
+    color: var(--rose-deep);
+    font-size: 15px;
+  }
+  .size-table tr:last-child td{ border-bottom: none; }
+
+  /* =========================================================
+     "VENHA DE ROSA" — paleta de cores
+     ========================================================= */
+  .pink-fallback{
+    margin-top: 28px;
+    background:
+      linear-gradient(180deg, #fff 0%, #fdf0ef 100%);
+    border: 1px dashed var(--rose);
+    border-radius: var(--radius);
+    padding: 26px 24px;
+    text-align: center;
+  }
+  .pink-fallback h4{
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-size: 19px;
+    color: var(--wine);
+    margin: 0 0 4px;
+    font-weight: 500;
+  }
+  .pink-fallback p{
+    color: var(--muted);
+    font-size: 14px;
+    margin: 0 0 18px;
+  }
+  .palette{
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 10px;
+    max-width: 380px;
+    margin: 0 auto;
+  }
+  .swatch{
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.06), 0 2px 6px rgba(91,24,48,.08);
+  }
+  @media (max-width: 480px){
+    .palette{ grid-template-columns: repeat(6, 1fr); gap: 6px;}
+  }
+
+  /* =========================================================
+     FORM
+     ========================================================= */
+  .form-card{
+    padding: 0;
+    overflow: hidden;
+  }
+  .form-head{
+    background: linear-gradient(135deg, var(--wine), var(--rose-deep));
+    color: #fff;
+    padding: 32px 36px;
+    position: relative;
+    overflow: hidden;
+  }
+  .form-head::after{
+    content:"";
+    position:absolute; right:-40px; top:-40px;
+    width: 200px; height: 200px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,.15), transparent 70%);
+  }
+  .form-head h2{
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 400;
+    font-size: 30px;
+    margin: 0 0 6px;
+  }
+  .form-head p{
+    margin: 0;
+    color: rgba(255,255,255,.78);
+    font-size: 14.5px;
+  }
+  .form-body{
+    padding: 36px;
+  }
+  @media (max-width: 600px){
+    .form-head{ padding: 26px 22px; }
+    .form-head h2{ font-size: 24px; }
+    .form-body{ padding: 26px 20px; }
+  }
+
+  .form-section{
+    margin-bottom: 36px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--line);
+  }
+  .form-section:last-child{ border-bottom: none; margin-bottom: 0; padding-bottom: 0;}
+
+  .form-section-title{
+    display:flex; align-items:center; gap: 14px;
+    margin-bottom: 22px;
+  }
+  .form-section-title .num{
+    width: 32px; height: 32px;
+    display:grid; place-items:center;
+    border-radius: 50%;
+    background: var(--blush);
+    color: var(--rose-deep);
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .form-section-title h3{
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-style: italic;
+    font-size: 22px;
+    color: var(--wine);
+    margin: 0;
+  }
+
+  /* Quantidade */
+  .qty-control{
+    display: inline-flex; align-items: center; gap: 4px;
+    background: var(--paper-warm);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 4px;
+  }
+  .qty-btn{
+    width: 42px; height: 42px;
+    border: none;
+    background: #fff;
+    border-radius: 50%;
+    color: var(--rose-deep);
+    font-size: 22px;
+    font-weight: 500;
+    display:grid; place-items:center;
+    transition: transform .15s, background .15s;
+    box-shadow: var(--shadow-sm);
+  }
+  .qty-btn:hover{ background: var(--rose); color: #fff; transform: scale(1.05);}
+  .qty-btn:disabled{ opacity: .35; cursor: not-allowed; }
+  .qty-btn:disabled:hover{ background: #fff; color: var(--rose-deep); transform:none; }
+  .qty-value{
+    min-width: 56px;
+    text-align: center;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 22px;
+    color: var(--wine);
+  }
+  .qty-hint{
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  /* Participantes */
+  .participant{
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 26px 24px;
+    margin-bottom: 18px;
+    position: relative;
+  }
+  .participant-head{
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px dashed var(--line);
+  }
+  .participant-head .badge{
+    background: var(--rose-deep);
+    color: #fff;
+    font-family: var(--font-serif);
+    font-style: italic;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 4px 12px;
+    border-radius: 999px;
+  }
+  .participant-head h4{
+    font-family: var(--font-serif);
+    font-weight: 500;
+    font-size: 18px;
+    color: var(--wine);
+    margin: 0;
+  }
+
+  .grid-2{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 560px){
+    .grid-2{ grid-template-columns: 1fr; }
+  }
+
+  .field{
+    margin-bottom: 16px;
+  }
+  .field:last-child{ margin-bottom: 0;}
+  .field label{
+    display:block;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: .04em;
+    color: var(--wine);
+    margin-bottom: 7px;
+  }
+  .field label .req{ color: var(--rose); margin-left: 2px;}
+  .field label .field-optional{ color: var(--muted); font-weight: 400; font-size: 12px; margin-left: 4px; }
+  .field input,
+  .field textarea,
+  .field select{
+    width: 100%;
+    padding: 12px 14px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    font: inherit;
+    color: var(--ink);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .field textarea{ resize: vertical; min-height: 80px; }
+  .field input:focus,
+  .field textarea:focus,
+  .field select:focus{
+    outline: none;
+    border-color: var(--rose);
+    box-shadow: 0 0 0 4px rgba(184,69,110,.12);
+  }
+  .field-hint{
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 6px;
+  }
+
+  /* Tamanho da camiseta — botões radio */
+  .size-options{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+    margin-top: 4px;
+  }
+  .size-option{
+    position: relative;
+  }
+  .size-option input{
+    position: absolute; opacity: 0; pointer-events: none;
+  }
+  .size-option label{
+    display: block;
+    padding: 12px 8px;
+    text-align: center;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--wine);
+    transition: all .15s;
+    margin: 0;
+    letter-spacing: .04em;
+  }
+  .size-option label:hover{
+    border-color: var(--rose);
+    background: var(--blush-soft);
+  }
+  .size-option input:checked + label{
+    background: linear-gradient(135deg, var(--rose), var(--rose-deep));
+    color: #fff;
+    border-color: var(--rose-deep);
+    box-shadow: 0 4px 12px rgba(184,69,110,.25);
+  }
+  .size-option.no-shirt label{
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0;
+    grid-column: span 2;
+  }
+  .size-option.size-out label{
+    background: #f4ecec;
+    color: #8a6772;
+    border-style: dashed;
+    cursor: not-allowed;
+    position: relative;
+  }
+  .size-option.size-out label:hover{
+    background: #f4ecec;
+    border-color: var(--line);
+  }
+  .size-option .size-rest{
+    display: block;
+    margin-top: 2px;
+    font-family: var(--font-sans);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    opacity: .75;
+  }
+  .size-option.size-out .size-rest{
+    color: #b8456e;
+    opacity: 1;
+  }
+
+  /* TOTAL */
+  .total-box{
+    margin-top: 28px;
+    background: linear-gradient(135deg, var(--paper-warm), var(--blush-soft));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 22px 26px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    flex-wrap: wrap;
+  }
+  .total-box .total-label{
+    font-size: 11.5px;
+    letter-spacing: .22em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 700;
+  }
+  .total-box .total-break{
+    color: var(--muted);
+    font-size: 13.5px;
+    margin-top: 4px;
+  }
+  .total-box .total-fee-note{
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--success-deep, #1f7a4d);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .total-box .total-fee-note::before{
+    content: "✓";
+    display: inline-grid;
+    place-items: center;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: #2eb872;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .total-box .total-value{
+    font-family: var(--font-serif);
+    font-weight: 600;
+    font-size: 38px;
+    color: var(--wine);
+    line-height: 1;
+    letter-spacing: -.01em;
+  }
+  .total-box .total-value small{
+    font-size: 16px;
+    color: var(--muted);
+    font-weight: 500;
+    margin-left: 4px;
+  }
+
+  /* CTA */
+  .btn{
+    display:inline-flex; align-items:center; justify-content:center; gap: 10px;
+    padding: 16px 28px;
+    border: none;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    transition: all .2s;
+    text-decoration: none;
+    letter-spacing: .01em;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, var(--rose-deep), var(--wine));
+    color: #fff;
+    box-shadow: 0 8px 24px rgba(91,24,48,.25), inset 0 1px 0 rgba(255,255,255,.15);
+  }
+  .btn-primary:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 12px 32px rgba(91,24,48,.35), inset 0 1px 0 rgba(255,255,255,.15);
+  }
+  .btn-primary:active{ transform: translateY(0); }
+  .btn-primary:disabled{
+    opacity: .55; cursor: not-allowed; transform: none;
+  }
+  .btn-block{ display:flex; width: 100%; }
+  .btn-lg{ padding: 18px 32px; font-size: 16px; }
+
+  /* Trust footer */
+  .trust-row{
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    font-size: 12.5px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .trust-row .sep{ opacity: .35; }
+  .trust-row .it{ display:inline-flex; align-items:center; gap: 6px; }
+
+  /* ALERTS */
+  .alert{
+    padding: 14px 18px;
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+    font-size: 14px;
+    border-left: 3px solid;
+  }
+  .alert-danger{
+    background: #fce8ec;
+    color: var(--wine);
+    border-color: var(--rose);
+  }
+  .alert-warning{
+    background: #fef4e0;
+    color: #6b4a17;
+    border-color: var(--gold);
+  }
+
+  /* FOOTER */
+  .site-footer{
+    text-align: center;
+    padding: 40px 22px;
+    color: var(--muted);
+    font-size: 13px;
+    border-top: 1px solid var(--line);
+    margin-top: 60px;
+    background: rgba(255,255,255,.4);
+  }
+  .site-footer .org{
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--wine);
+    font-weight: 500;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  /* =========================================================
+     MODAL — escolha do método de pagamento (Pix / Cartão)
+     ========================================================= */
+  .pay-modal{
+    position: fixed; inset: 0; z-index: 999;
+    display: grid; place-items: center;
+    padding: 20px;
+  }
+  .pay-modal.hidden{ display: none; }
+  .pay-modal-backdrop{
+    position: absolute; inset: 0;
+    background: rgba(91,24,48,.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: payFadeIn .2s ease-out;
+  }
+  .pay-modal-card{
+    position: relative;
+    background: #fff;
+    border-radius: var(--radius-lg);
+    padding: 32px 28px;
+    max-width: 460px;
+    width: 100%;
+    box-shadow: var(--shadow-lg);
+    animation: paySlideUp .3s cubic-bezier(.2,.8,.2,1);
+  }
+  @keyframes payFadeIn{ from{ opacity:0;} to{ opacity:1;} }
+  @keyframes paySlideUp{
+    from{ transform: translateY(20px); opacity:0;}
+    to{ transform: translateY(0); opacity:1;}
+  }
+  .pay-modal-close{
+    position: absolute; top: 12px; right: 14px;
+    background: transparent; border: none;
+    font-size: 26px; line-height: 1;
+    color: var(--muted);
+    width: 38px; height: 38px;
+    border-radius: 50%;
+    transition: background .15s, color .15s;
+  }
+  .pay-modal-close:hover{ background: var(--blush-soft); color: var(--wine); }
+  .pay-modal-head{ text-align: center; margin-bottom: 22px; }
+  .pay-eyebrow{
+    font-size: 11.5px; letter-spacing: .26em;
+    text-transform: uppercase; color: var(--rose);
+    font-weight: 700; margin-bottom: 6px;
+  }
+  .pay-modal-head h3{
+    font-family: var(--font-serif); font-style: italic;
+    font-weight: 400;
+    font-size: 26px; color: var(--wine);
+    margin: 0 0 12px;
+  }
+  .pay-total{
+    font-weight: 700; font-size: 22px;
+    color: var(--rose-deep);
+  }
+  .pay-modal-body{ display: flex; flex-direction: column; gap: 12px; }
+  .pay-modal-body.hidden{ display: none; }
+  .pay-option{
+    display: flex; align-items: center; gap: 14px;
+    padding: 18px 16px;
+    border: 1.5px solid var(--line);
+    background: #fff;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: border-color .15s, background .15s, transform .15s, box-shadow .15s;
+    text-align: left;
+    font-family: inherit;
+    color: var(--ink);
+  }
+  .pay-option:hover:not(:disabled){
+    border-color: var(--rose);
+    background: var(--blush-soft);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+  }
+  .pay-option:disabled{ opacity: .55; cursor: wait; }
+  .pay-option-icon{
+    width: 44px; height: 44px;
+    border-radius: 12px;
+    display: grid; place-items: center;
+    flex-shrink: 0;
+  }
+  .pay-option-body{ flex: 1; }
+  .pay-option-title{ font-weight: 700; font-size: 16px; }
+  .pay-option-sub{ font-size: 13px; color: var(--muted); margin-top: 2px; }
+  .pay-option-arrow{ font-size: 22px; color: var(--rose); font-weight: 300; }
+  .pay-modal-loading{
+    display: flex; align-items: center; justify-content: center;
+    gap: 12px; padding: 28px 14px;
+    color: var(--muted); font-size: 14.5px;
+  }
+  .pay-modal-loading.hidden{ display: none; }
+  .pay-spinner-sm{
+    width: 22px; height: 22px;
+    border: 2.5px solid var(--blush);
+    border-top-color: var(--rose);
+    border-radius: 50%;
+    animation: paySpin 1s linear infinite;
+  }
+  @keyframes paySpin{ to{ transform: rotate(360deg);} }
+  .pay-modal-error{
+    background: #fce8ec; color: var(--wine);
+    border-left: 3px solid var(--rose);
+    padding: 12px 16px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    margin-top: 14px;
+  }
+  .pay-modal-error.hidden{ display: none; }
+  .pay-modal-foot{
+    display: flex; align-items: center; justify-content: center;
+    gap: 7px;
+    margin-top: 22px;
+    font-size: 12px;
+    color: var(--muted);
+  }
+
+  /* Retiro para Casais */
+  .couples-poster{
+    overflow:hidden;
+    border-radius:var(--radius-lg);
+    background:var(--wine);
+    border:1px solid rgba(189,138,53,.35);
+    box-shadow:var(--shadow-lg);
+  }
+  .couples-poster img{ width:100%; height:auto; }
+  .shirt-showcase img.couples-shirt-layout{
+    width:100%; max-width:none; height:auto; aspect-ratio:auto; object-fit:contain;
+    background:#eef0f2; border-radius:14px;
+  }
+  .shirt-grid{ grid-template-columns:1fr; }
+  .shirt-side{ display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+  .model-options{ display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+  .model-option{ position:relative; }
+  .model-option input{ position:absolute; opacity:0; pointer-events:none; }
+  .model-option label{
+    display:block; padding:10px 14px; border-radius:999px;
+    border:1px solid var(--line); background:#fff; font-size:13px;
+    font-weight:700; color:var(--wine); cursor:pointer; transition:.18s ease;
+  }
+  .model-option input:checked + label{
+    background:var(--wine); color:#fff; border-color:var(--wine);
+    box-shadow:0 5px 16px rgba(72,13,25,.18);
+  }
+  .spouse-card{
+    padding:18px; margin-top:16px; border:1px solid var(--line);
+    border-radius:var(--radius); background:rgba(255,255,255,.66);
+  }
+  .spouse-title{ margin:0 0 14px; color:var(--wine); font-family:var(--font-serif); font-size:18px; }
+  @media (max-width:700px){ .shirt-side{ grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">♥</span>
+      <span>Retiro para Casais</span>
+    </div>
+    <span class="trust-pill">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Pagamento seguro
+    </span>
+  </div>
+</header>
+
+<main class="container">
+
+  <!-- LOADING STATE -->
+  <div id="loading-state" class="state-card">
+    <div class="spinner"></div>
+    <p>Carregando evento…</p>
+  </div>
+
+  <!-- ERROR STATE -->
+  <div id="error-state" class="state-card hidden">
+    <div class="alert alert-danger" id="error-message">Evento não encontrado.</div>
+    <p>Verifique o link do evento ou entre em contato com o organizador.</p>
+  </div>
+
+  <!-- EVENT STATE -->
+  <div id="event-state" class="hidden">
+
+    <!-- HERO -->
+    <section class="couples-poster">
+      <img id="event-banner" src="/images/retiro_casais.jpeg" alt="2º Retiro para Casais">
+    </section>
+
+    <!-- INFO STRIP -->
+    <div class="info-strip">
+      <div class="info-cell">
+        <div class="info-label">Data</div>
+        <div class="info-value" id="event-date">17 e 18 de outubro<small>2026</small></div>
+      </div>
+      <div class="info-cell">
+        <div class="info-label">Local</div>
+        <div class="info-value" id="event-location">Sede do Acampamento<small>Novo Progresso/PA</small></div>
+      </div>
+      <div class="info-cell highlight">
+        <div class="info-label">Investimento</div>
+        <div class="info-value" id="event-price">R$ 300<small>por casal</small></div>
+      </div>
+      <div class="info-cell">
+        <div class="info-label">Vagas</div>
+        <div class="info-value" id="event-remaining">—<small>restantes</small></div>
+      </div>
+    </div>
+
+    <!-- SOBRE O EVENTO -->
+    <section class="section">
+      <div class="card about-card">
+        <div class="about-text">
+          <p>Um final de semana preparado para casais que desejam fortalecer o amor, renovar a aliança e crescer juntos na fé.</p>
+          <p>Serão momentos de oração, formação, convivência e partilha na Sede do Acampamento.</p>
+          <div class="scripture">
+            "Assim, eles já não são dois, mas sim uma só carne."
+            <cite>Mateus 19,6</cite>
+          </div>
+        </div>
+        <div class="about-visual">
+          <!-- Ilustração SVG botânica suave -->
+          <svg width="220" height="220" viewBox="0 0 220 220" fill="none" aria-hidden="true">
+            <!-- folhas -->
+            <g opacity=".55" stroke="#8b2d52" stroke-width="1.2" fill="none">
+              <path d="M30 110 Q60 70 110 80"/>
+              <path d="M30 110 Q50 95 70 95" />
+              <path d="M30 110 Q50 120 70 115" />
+              <path d="M190 110 Q160 70 110 80" />
+              <path d="M190 110 Q170 95 150 95" />
+              <path d="M190 110 Q170 120 150 115" />
+            </g>
+            <!-- pétalas centrais -->
+            <g fill="#b8456e" opacity=".18">
+              <ellipse cx="110" cy="80" rx="34" ry="14" transform="rotate(0 110 80)"/>
+              <ellipse cx="110" cy="80" rx="34" ry="14" transform="rotate(60 110 80)"/>
+              <ellipse cx="110" cy="80" rx="34" ry="14" transform="rotate(120 110 80)"/>
+            </g>
+            <g fill="#b8456e" opacity=".35">
+              <ellipse cx="110" cy="80" rx="22" ry="9" transform="rotate(30 110 80)"/>
+              <ellipse cx="110" cy="80" rx="22" ry="9" transform="rotate(90 110 80)"/>
+              <ellipse cx="110" cy="80" rx="22" ry="9" transform="rotate(150 110 80)"/>
+            </g>
+            <circle cx="110" cy="80" r="9" fill="#b8935a"/>
+            <circle cx="110" cy="80" r="4" fill="#5b1830"/>
+
+            <!-- borboleta -->
+            <g transform="translate(155 140) rotate(-15)" opacity=".7">
+              <path d="M0 0 Q-10 -14 -22 -10 Q-26 -2 -14 4 Z" fill="#b8456e"/>
+              <path d="M0 0 Q10 -14 22 -10 Q26 -2 14 4 Z" fill="#b8456e"/>
+              <path d="M0 0 Q-8 8 -16 12 Q-22 14 -12 18 Z" fill="#8b2d52"/>
+              <path d="M0 0 Q8 8 16 12 Q22 14 12 18 Z" fill="#8b2d52"/>
+              <line x1="0" y1="-6" x2="0" y2="18" stroke="#2a1820" stroke-width="1.4"/>
+            </g>
+
+            <!-- ramo lateral -->
+            <g stroke="#8b2d52" stroke-width="1.2" fill="none" opacity=".5">
+              <path d="M50 180 Q70 160 90 170"/>
+              <circle cx="56" cy="173" r="2.5" fill="#b8456e" opacity=".8"/>
+              <circle cx="70" cy="163" r="2.5" fill="#b8456e" opacity=".8"/>
+              <circle cx="85" cy="168" r="2.5" fill="#b8456e" opacity=".8"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- CAMISETA -->
+    <section class="section">
+      <div class="section-header">
+        <div class="section-eyebrow">Camiseta oficial</div>
+        <h2 class="section-title">Deus tem um plano para nós</h2>
+        <p class="section-sub">Escolha o modelo e o tamanho de cada cônjuge. A imagem e os nomes dos modelos podem ser atualizados pelo painel administrativo.</p>
+      </div>
+
+      <div class="shirt-grid">
+
+        <!-- VITRINE DA CAMISETA -->
+        <div class="shirt-showcase">
+          <img class="shirt-illustration couples-shirt-layout" id="shirt-layout-image"
+               src="/images/camisetas_retiro_casais.png"
+               alt="Layout da camiseta oficial do Retiro para Casais">
+        </div>
+
+        <!-- INFO LATERAL -->
+        <div class="shirt-side">
+
+          <div class="shirt-info-card">
+            <h3>Modelos disponíveis</h3>
+            <p id="shirt-models-description">Modelo 1: logos nos ombros · Modelo 2: logos centralizados · Modelo 3: logos empilhados. A frente é comum aos três modelos.</p>
+          </div>
+
+          <div class="pink-fallback">
+            <h4>Escolha individual</h4>
+            <p>Cada pessoa do casal pode escolher um modelo e um tamanho diferentes.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOQUEIO -->
+    <div id="event-blocked" class="alert alert-warning hidden"></div>
+
+    <!-- FORMULÁRIO -->
+    <section class="section">
+      <form id="registration-form" class="card form-card" novalidate>
+
+        <div class="form-head">
+          <h2>Faça sua inscrição</h2>
+          <p>Preencha os dados dos dois cônjuges. A inscrição e o pagamento serão registrados por casal.</p>
+        </div>
+
+        <div class="form-body">
+
+          <!-- 1. QUANTIDADE -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <div class="num">1</div>
+              <h3>Quantos casais?</h3>
+            </div>
+            <div class="qty-control" role="group" aria-label="Quantidade de inscrições">
+              <button type="button" class="qty-btn" id="qty-minus" aria-label="Diminuir">−</button>
+              <span class="qty-value" id="qty-value">1</span>
+              <button type="button" class="qty-btn" id="qty-plus" aria-label="Aumentar">+</button>
+            </div>
+            <div class="qty-hint" id="qty-hint">Você pode inscrever mais de um casal em uma única transação.</div>
+          </div>
+
+          <!-- 2. PARTICIPANTES -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <div class="num">2</div>
+              <h3>Dados dos casais</h3>
+            </div>
+            <div id="participants-container"></div>
+          </div>
+
+          <!-- 3. TOTAL E PAGAMENTO -->
+          <div class="form-section">
+            <div class="form-section-title">
+              <div class="num">3</div>
+              <h3>Confirmação e pagamento</h3>
+            </div>
+
+            <div class="total-box">
+              <div>
+                <div class="total-label">Total a pagar</div>
+                <div class="total-break" id="total-breakdown">1 × R$ 300,00 (casal)</div>
+                <div class="total-fee-note">Valor final — taxa do Pix já incluída. Você não paga nada além disso.</div>
+              </div>
+              <div class="total-value" id="total-value">R$ 300<small>,00</small></div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-lg" id="btn-submit" style="margin-top: 22px;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+              <span id="btn-submit-text">Pagar com Pix</span>
+            </button>
+
+            <div class="trust-row">
+              <span class="it">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                Conexão segura
+              </span>
+              <span class="sep">•</span>
+              <span>Processado pelo Mercado Pago</span>
+              <span class="sep">•</span>
+              <span class="it">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4"/><path d="M4 6v12a2 2 0 0 0 2 2h14v-4"/><path d="M18 12a2 2 0 0 0 0 4h4v-4Z"/></svg>
+                Pagamento via PIX
+              </span>
+              <span class="sep">•</span>
+              <span>Sem taxa extra para você</span>
+            </div>
+          </div>
+
+        </div>
+      </form>
+    </section>
+
+  </div>
+</main>
+
+<footer class="site-footer">
+  <div class="org">Paróquia Santa Luzia · Movimento Acampamento</div>
+  <div>2º Retiro para Casais · Novo Progresso/PA · © 2026</div>
+</footer>
+
+<!-- ====================================================
+     MODAL — escolha do método de pagamento (Pix ou Cartão)
+     ==================================================== -->
+<div id="pay-modal" class="pay-modal hidden" role="dialog" aria-modal="true" aria-labelledby="pay-modal-title" aria-hidden="true">
+  <div class="pay-modal-backdrop" id="pay-modal-backdrop"></div>
+  <div class="pay-modal-card">
+    <button type="button" class="pay-modal-close" id="pay-modal-close" aria-label="Fechar">×</button>
+
+    <div class="pay-modal-head">
+      <div class="pay-eyebrow">Última etapa</div>
+      <h3 id="pay-modal-title">Como você quer pagar?</h3>
+      <div class="pay-total" id="pay-modal-total">R$ 0,00</div>
+    </div>
+
+    <div class="pay-modal-body" id="pay-modal-body">
+      <button type="button" class="pay-option" id="pay-pix" data-method="pix">
+        <div class="pay-option-icon" style="background: linear-gradient(135deg, #2eb872, #1f7a4d);">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 2 L22 12 L12 22 L2 12 Z"/><path d="M8 8 L16 16"/><path d="M16 8 L8 16"/>
+          </svg>
+        </div>
+        <div class="pay-option-body">
+          <div class="pay-option-title">PIX</div>
+          <div class="pay-option-sub">QR Code instantâneo, sem sair desta página</div>
+        </div>
+        <div class="pay-option-arrow">→</div>
+      </button>
+
+      <button type="button" class="pay-option" id="pay-cartao" data-method="cartao">
+        <div class="pay-option-icon" style="background: linear-gradient(135deg, var(--rose), var(--rose-deep));">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/>
+          </svg>
+        </div>
+        <div class="pay-option-body">
+          <div class="pay-option-title">Cartão de crédito ou débito</div>
+          <div class="pay-option-sub">Em até 12 parcelas, processado pelo Mercado Pago</div>
+        </div>
+        <div class="pay-option-arrow">→</div>
+      </button>
+    </div>
+
+    <div class="pay-modal-loading hidden" id="pay-modal-loading">
+      <div class="pay-spinner-sm"></div>
+      <span id="pay-modal-loading-text">Processando…</span>
+    </div>
+
+    <div class="pay-modal-error hidden" id="pay-modal-error"></div>
+
+    <div class="pay-modal-foot">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      Pagamento processado com segurança pelo Mercado Pago
+    </div>
+  </div>
+</div>
+
+<!-- =========================================================
+     SCRIPTS — Firebase + lógica do formulário
+     Compatível com o backend do pagamentos-site (api/criar-preferencia)
+     ========================================================= -->
+<script>
+  /* firebaseConfig do projeto pagamentos-site (Firebase) */
+  const firebaseConfig = {
+    apiKey:            "AIzaSyCrrTLJMWve_8mNptzAiMxz5ejTFE58GXA",
+    authDomain:        "pagamentos-site.firebaseapp.com",
+    projectId:         "pagamentos-site",
+    storageBucket:     "pagamentos-site.firebasestorage.app",
+    messagingSenderId: "350551469871",
+    appId:             "1:350551469871:web:98ef3105c2590f9df23bda",
+    measurementId:     "G-DR9Z41XCZN"
+  };
+  // URL da Vercel que hospeda /api/criar-preferencia
+  const API_BASE_URL = "https://pagamentos-site.vercel.app";
+  // Public Key Mercado Pago (produção) — opcional para Checkout Pro
+  const MERCADO_PAGO_PUBLIC_KEY = "APP_USR-cdcc85cf-78f3-475e-a39d-d301180c4c12";
+
+  // Slug do evento (igual ao Firestore). Pode vir por ?evento=retiro-para-casais
+  const DEFAULT_SLUG = "retiro-para-casais";
+
+  /* ------- inicializa Firebase (guard contra double-init) ------- */
+  if (typeof firebase !== "undefined" && !firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+  const db = (typeof firebase !== "undefined" && firebase.apps.length) ? firebase.firestore() : null;
+
+  /* ------- helpers ------- */
+  const $ = (id) => document.getElementById(id);
+  const fmtBRL = (n) => "R$ " + Number(n).toFixed(2).replace(".", ",");
+  const fmtBRLSplit = (n) => {
+    const [a, b] = Number(n).toFixed(2).split(".");
+    return { reais: "R$ " + a, cents: "," + b };
+  };
+
+  /* ------- estado -------
+     A unidade de inscrição é um casal. O adicional de camiseta,
+     quando configurado, é cobrado por camiseta escolhida. */
+  /* eventData usa os MESMOS nomes de campo gravados pelo admin
+     (events.dataEvento, events.tamanhosCamiseta, events.precoCamiseta,
+      events.estoqueCamisetas, events.vendidoCamisetas). */
+  let eventData = {
+    id: null,
+    slug: DEFAULT_SLUG,
+    nome: "2º Retiro para Casais",
+    valor: 300,                                // valor por casal
+    precoCamiseta: 0,                          // adicional por camiseta, se houver
+    limiteIngressos: 250,
+    ingressosVendidos: 0,
+    exigeCamiseta: true,
+    tamanhosCamiseta: ["PP","P","M","G","GG","XG","XXG"],
+    modelosCamiseta: ["Modelo 1","Modelo 2","Modelo 3"],
+    estoqueCamisetas: {},                      // ex.: { P: 100, M: 50 }  (0/ausente = ilimitado)
+    vendidoCamisetas: {},                      // ex.: { P: 5, M: 3 }
+    ativo: true,
+    dataEvento: "2026-10-17",
+    local: "Sede do Acampamento — Novo Progresso/PA",
+    descricao: "Um final de semana para fortalecer o amor e a fé.",
+    bannerUrl: "/images/retiro_casais.jpeg",
+    camisetaImagemUrl: "/images/camisetas_retiro_casais.png"
+  };
+  let qty = 1;
+
+  const NO_SHIRT_LABEL = "Não desejo camiseta";
+
+  // helper: dado um valor de "tamanho" salvo no form, decide se cobra a camiseta
+  function temCamiseta(tamanho) {
+    if (!tamanho) return false;
+    return !/n[ãa]o\s*dese/i.test(String(tamanho));
+  }
+
+  // estoque restante de um tamanho. retorna Infinity se ilimitado / sem estoque configurado
+  function restanteTamanho(sz) {
+    const total = Number(eventData.estoqueCamisetas?.[sz]) || 0;
+    if (total <= 0) return Infinity; // sem limite definido => ilimitado
+    const vend = Number(eventData.vendidoCamisetas?.[sz]) || 0;
+    return Math.max(0, total - vend);
+  }
+  function tamanhoEsgotado(sz) {
+    return restanteTamanho(sz) <= 0;
+  }
+
+  /* =========================================================
+     CARREGAMENTO DO EVENTO
+     ========================================================= */
+  async function loadEvent(){
+    // Recuperação automática: se um casal iniciou um pagamento recentemente
+    // e voltou pra cá (ou o MP não redirecionou após Pix aprovado), checamos
+    // o status no Firestore e redirecionamos pra /sucesso ou /pendente.
+    try {
+      const raw = localStorage.getItem("lastCheckout");
+      if (raw && db) {
+        const last = JSON.parse(raw);
+        const idadeMs = Date.now() - (Number(last.ts) || 0);
+        // Janela de 30 minutos — passa disso, considera fluxo abandonado.
+        if (last && last.id && idadeMs < 30 * 60 * 1000) {
+          // Para Pix iniciado mas ainda não pago, registration ainda não
+          // existe — manda direto para /sucesso, que vai mostrar o QR
+          // (lido do localStorage) e fazer polling até virar "pago".
+          const pixData = localStorage.getItem("pix:" + last.id);
+          const snap = await db.collection("registrations").doc(last.id).get();
+          if (snap.exists) {
+            const st = String(snap.data().statusPagamento || "").toLowerCase();
+            if (st === "pago") {
+              localStorage.removeItem("lastCheckout");
+              localStorage.removeItem("pix:" + last.id);
+              location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
+              return;
+            }
+            if (st === "pendente") {
+              // /sucesso lida com pendente (mostra QR para Pix, "aguardando" para cartão)
+              location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
+              return;
+            }
+            if (st === "recusado" || st === "cancelado") {
+              localStorage.removeItem("lastCheckout");
+              localStorage.removeItem("pix:" + last.id);
+              // Deixa seguir o fluxo normal — usuária pode tentar de novo.
+            }
+          } else if (pixData) {
+            // Pix gerado, ainda nem chegou notificação do MP — volta pro QR
+            location.replace("/sucesso?registrationId=" + encodeURIComponent(last.id));
+            return;
+          }
+        } else if (idadeMs >= 30 * 60 * 1000) {
+          localStorage.removeItem("lastCheckout");
+        }
+      }
+    } catch (err) {
+      console.warn("Falha ao verificar checkout pendente:", err);
+    }
+
+    const params = new URLSearchParams(window.location.search);
+    const slug = params.get("evento") || DEFAULT_SLUG;
+    eventData.slug = slug;
+
+    try {
+      if (db) {
+        const snap = await db.collection("events").where("slug", "==", slug).limit(1).get();
+        if (!snap.empty) {
+          const doc = snap.docs[0];
+          eventData = { ...eventData, ...doc.data(), id: doc.id };
+        }
+      }
+    } catch (err) {
+      console.warn("Firestore indisponível, usando dados padrão.", err);
+    }
+
+    renderEvent();
+  }
+
+  function renderEvent(){
+    $("loading-state").classList.add("hidden");
+    $("event-state").classList.remove("hidden");
+
+    // Data do evento — admin grava em dataEvento (yyyy-mm-dd ou ISO)
+    if (eventData.dataEvento) {
+      try {
+        const raw = String(eventData.dataEvento);
+        const d = new Date(raw.includes("T") ? raw : raw + "T12:00:00");
+        $("event-date").innerHTML = isNaN(d.getTime())
+          ? raw
+          : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+      } catch { $("event-date").innerHTML = eventData.dataEvento; }
+    }
+    if (eventData.local) $("event-location").innerHTML = eventData.local;
+    if (eventData.bannerUrl) $("event-banner").src = eventData.bannerUrl;
+    if (eventData.camisetaImagemUrl) $("shirt-layout-image").src = eventData.camisetaImagemUrl;
+    if (Array.isArray(eventData.modelosCamiseta) && eventData.modelosCamiseta.length) {
+      $("shirt-models-description").textContent = eventData.modelosCamiseta.join(" · ");
+    }
+
+    if (eventData.valor) {
+      const base = fmtBRLSplit(eventData.valor);
+      const precoCam = Number(eventData.precoCamiseta) || 0;
+      if (precoCam > 0) {
+        const comCam = fmtBRLSplit(eventData.valor + precoCam);
+        $("event-price").innerHTML = `${base.reais}<small>por casal · ${fmtBRL(precoCam)} por camiseta</small>`;
+      } else {
+        $("event-price").innerHTML = `${base.reais}<small>por casal</small>`;
+      }
+    }
+    const restante = Math.max(0, (eventData.limiteIngressos||0) - (eventData.ingressosVendidos||0));
+    if (eventData.limiteIngressos) {
+      $("event-remaining").innerHTML = `${restante}<small>de ${eventData.limiteIngressos}</small>`;
+    }
+
+    // bloqueio: evento pausado pelo admin
+    if (eventData.ativo === false) {
+      const b = $("event-blocked");
+      b.textContent = "As inscrições para este evento estão pausadas no momento.";
+      b.classList.remove("hidden");
+      $("registration-form").classList.add("hidden");
+      return;
+    }
+
+    // bloqueio: vagas totais esgotadas
+    if (eventData.limiteIngressos && restante <= 0) {
+      const b = $("event-blocked");
+      b.textContent = "As inscrições para este evento estão encerradas — o limite de vagas foi atingido.";
+      b.classList.remove("hidden");
+      $("registration-form").classList.add("hidden");
+      return;
+    }
+
+    renderParticipants();
+  }
+
+  /* =========================================================
+     PARTICIPANTES
+     ========================================================= */
+  function shirtFieldsHTML(idx, personKey, personLabel){
+    if (eventData.exigeCamiseta === false) return "";
+    const realSizes = (eventData.tamanhosCamiseta || ["PP","P","M","G","GG","XG","XXG"])
+      .filter(s => !/n[ãa]o\s*dese/i.test(s));
+    const sizes = [...realSizes, NO_SHIRT_LABEL];
+    const models = Array.isArray(eventData.modelosCamiseta) && eventData.modelosCamiseta.length
+      ? eventData.modelosCamiseta
+      : ["Modelo 1","Modelo 2","Modelo 3"];
+
+    const sizeOptions = sizes.map((sz, i) => {
+      const isNoShirt = /n[ãa]o\s*dese/i.test(sz);
+      const esgotado = !isNoShirt && tamanhoEsgotado(sz);
+      const rest = isNoShirt ? Infinity : restanteTamanho(sz);
+      const restLabel = (!isNoShirt && Number.isFinite(rest))
+        ? (esgotado ? "ESGOTADO" : `${rest} restantes`)
+        : "";
+      const id = `size-${personKey}-${idx}-${i}`;
+      return `
+        <div class="size-option ${isNoShirt ? "no-shirt" : ""} ${esgotado ? "size-out" : ""}">
+          <input type="radio" name="size-${personKey}-${idx}" id="${id}" value="${sz}" ${esgotado ? "disabled" : ""}>
+          <label for="${id}" title="${restLabel}">${sz}${restLabel ? `<span class="size-rest">${restLabel}</span>` : ""}</label>
+        </div>`;
+    }).join("");
+
+    const modelOptions = models.map((model, i) => {
+      const id = `model-${personKey}-${idx}-${i}`;
+      return `<div class="model-option"><input type="radio" name="model-${personKey}-${idx}" id="${id}" value="${model}"><label for="${id}">${model}</label></div>`;
+    }).join("");
+
+    return `
+      <div class="field">
+        <label>Camiseta de ${personLabel} <small class="field-optional">(opcional)</small></label>
+        <div class="size-options">${sizeOptions}</div>
+        <div class="field-hint">Escolha também o modelo quando selecionar um tamanho.</div>
+        <div class="model-options">${modelOptions}</div>
+      </div>`;
+  }
+
+  function participantTemplate(idx){
+    return `
+      <div class="participant" data-idx="${idx}">
+        <div class="participant-head">
+          <span class="badge">Casal ${idx + 1}</span>
+          <h4 id="part-${idx}-name">Preencha os dados do casal</h4>
+        </div>
+
+        <div class="spouse-card">
+          <h5 class="spouse-title">Primeiro cônjuge</h5>
+          <div class="grid-2">
+            <div class="field">
+              <label>Nome completo <span class="req">*</span></label>
+              <input type="text" name="nome-${idx}" required autocomplete="name" placeholder="Nome do primeiro cônjuge">
+            </div>
+            <div class="field">
+              <label>Telefone com DDD <span class="req">*</span></label>
+              <input type="tel" name="telefone-${idx}" required placeholder="(93) 9 8000-0000" inputmode="tel">
+            </div>
+          </div>
+          ${shirtFieldsHTML(idx, "one", "primeiro cônjuge")}
+        </div>
+
+        <div class="spouse-card">
+          <h5 class="spouse-title">Segundo cônjuge</h5>
+          <div class="grid-2">
+            <div class="field">
+              <label>Nome completo <span class="req">*</span></label>
+              <input type="text" name="nomeEsposa-${idx}" required placeholder="Nome do segundo cônjuge">
+            </div>
+            <div class="field">
+              <label>Telefone com DDD <span class="req">*</span></label>
+              <input type="tel" name="contatoEsposaFamiliar-${idx}" required placeholder="(93) 9 8000-0000" inputmode="tel">
+            </div>
+          </div>
+          ${shirtFieldsHTML(idx, "two", "segundo cônjuge")}
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>E-mail do responsável <span class="req">*</span></label>
+            <input type="email" name="email-${idx}" required placeholder="seu@email.com" autocomplete="email">
+          </div>
+          <div class="field">
+            <label>Cidade</label>
+            <input type="text" name="cidade-${idx}" placeholder="Novo Progresso">
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Endereço</label>
+          <input type="text" name="endereco-${idx}" placeholder="Rua, número, bairro">
+        </div>
+
+        <div class="grid-2">
+          <div class="field">
+            <label>Comunidade / Paróquia</label>
+            <input type="text" name="comunidade-${idx}" placeholder="Ex.: Paróquia Santa Luzia">
+          </div>
+          <div class="field">
+            <label>Pastoral ou movimento (se houver)</label>
+            <input type="text" name="pastoral-${idx}" placeholder="Ex.: Pastoral Familiar, ECC…">
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderParticipants(){
+    const c = $("participants-container");
+    const current = [...c.querySelectorAll(".participant")];
+    // preserva dados quando re-renderiza? Mantemos simples: refaz e copia valores
+    const previousValues = current.map((p) => {
+      const data = {};
+      p.querySelectorAll("input").forEach(i => { data[i.name] = (i.type === "radio") ? (i.checked ? i.value : data[i.name]) : i.value; });
+      return data;
+    });
+
+    c.innerHTML = "";
+    for (let i = 0; i < qty; i++) {
+      c.insertAdjacentHTML("beforeend", participantTemplate(i));
+    }
+
+    // restaura valores antigos por índice
+    previousValues.forEach((vals, i) => {
+      if (i >= qty) return;
+      Object.entries(vals).forEach(([name, val]) => {
+        if (!val) return;
+        const fld = c.querySelector(`[name="${name}"]`);
+        if (!fld) return;
+        if (fld.type === "radio") {
+          const radio = c.querySelector(`[name="${name}"][value="${val}"]`);
+          if (radio) radio.checked = true;
+        } else {
+          fld.value = val;
+        }
+      });
+    });
+
+    // atualiza o cabeçalho do casal ao digitar os nomes
+    c.querySelectorAll("input[name^='nome-'], input[name^='nomeEsposa-']").forEach(input => {
+      input.addEventListener("input", () => {
+        const idx = input.name.split("-").pop();
+        const first = document.querySelector(`[name="nome-${idx}"]`)?.value?.trim() || "";
+        const second = document.querySelector(`[name="nomeEsposa-${idx}"]`)?.value?.trim() || "";
+        $(`part-${idx}-name`).textContent = [first, second].filter(Boolean).join(" & ") || "Preencha os dados do casal";
+      });
+    });
+
+    // recalcula o total quando qualquer cônjuge mudar a opção de camiseta
+    c.querySelectorAll("input[type='radio'][name^='size-']").forEach(r => {
+      r.addEventListener("change", updateTotal);
+    });
+
+    updateTotal();
+  }
+
+  /* =========================================================
+     QUANTIDADE
+     ========================================================= */
+  $("qty-minus").addEventListener("click", () => {
+    if (qty > 1) { qty--; renderParticipants(); }
+    refreshQtyButtons();
+  });
+  $("qty-plus").addEventListener("click", () => {
+    const max = Math.max(0, (eventData.limiteIngressos||999) - (eventData.ingressosVendidos||0));
+    if (qty < Math.min(10, max || 10)) { qty++; renderParticipants(); }
+    refreshQtyButtons();
+  });
+  function refreshQtyButtons(){
+    $("qty-value").textContent = qty;
+    $("qty-minus").disabled = qty <= 1;
+  }
+
+  /* Soma dinâmica: valor por casal + adicional por camiseta escolhida. */
+  function updateTotal(){
+    const base = Number(eventData.valor) || 0;
+    const precoCam = Number(eventData.precoCamiseta) || 0;
+
+    let comCamiseta = 0;
+    for (let i = 0; i < qty; i++) {
+      const one = document.querySelector(`input[name="size-one-${i}"]:checked`);
+      const two = document.querySelector(`input[name="size-two-${i}"]:checked`);
+      if (one && temCamiseta(one.value)) comCamiseta++;
+      if (two && temCamiseta(two.value)) comCamiseta++;
+    }
+
+    const total = qty * base + comCamiseta * precoCam;
+    const s = fmtBRLSplit(total);
+    $("total-value").innerHTML = `${s.reais}<small>${s.cents}</small>`;
+
+    const partes = [];
+    partes.push(`${qty} × ${fmtBRL(base)} (casal)`);
+    if (comCamiseta > 0 && precoCam > 0) partes.push(`${comCamiseta} × ${fmtBRL(precoCam)} (camiseta)`);
+    $("total-breakdown").textContent = partes.join("  +  ") || `${qty} × ${fmtBRL(base)}`;
+  }
+
+  /* =========================================================
+     SUBMIT — valida o formulário e abre o modal de pagamento.
+     O modal tem dois botões (Pix / Cartão) e cada um dispara
+     a chamada à API correspondente.
+     ========================================================= */
+
+  // Contexto do checkout atual (preenchido pelo submit, lido pelos
+  // handlers do modal). Reseta a cada nova tentativa.
+  let payContext = null;
+
+  function fmtBRLPretty(n) {
+    return "R$ " + Number(n).toFixed(2).replace(".", ",");
+  }
+
+  function openPayModal(ctx) {
+    payContext = ctx;
+    $("pay-modal-total").textContent = fmtBRLPretty(ctx.total);
+    $("pay-modal-body").classList.remove("hidden");
+    $("pay-modal-loading").classList.add("hidden");
+    $("pay-modal-error").classList.add("hidden");
+    $("pay-pix").disabled = false;
+    $("pay-cartao").disabled = false;
+    const modal = $("pay-modal");
+    modal.classList.remove("hidden");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closePayModal() {
+    const modal = $("pay-modal");
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+    $("btn-submit").disabled = false;
+    $("btn-submit-text").textContent = "Continuar para o pagamento";
+  }
+
+  function setModalLoading(text) {
+    $("pay-modal-body").classList.add("hidden");
+    $("pay-modal-error").classList.add("hidden");
+    $("pay-modal-loading").classList.remove("hidden");
+    $("pay-modal-loading-text").textContent = text;
+  }
+
+  function setModalError(msg) {
+    $("pay-modal-loading").classList.add("hidden");
+    $("pay-modal-body").classList.remove("hidden");
+    $("pay-pix").disabled = false;
+    $("pay-cartao").disabled = false;
+    const errEl = $("pay-modal-error");
+    errEl.textContent = msg;
+    errEl.classList.remove("hidden");
+  }
+
+  $("pay-modal-close").addEventListener("click", closePayModal);
+  $("pay-modal-backdrop").addEventListener("click", closePayModal);
+
+  async function parseApiError(resp) {
+    const text = await resp.text();
+    try {
+      const j = JSON.parse(text);
+      return j.error || j.message || (j.details && (j.details.message || JSON.stringify(j.details))) || text.slice(0, 200);
+    } catch {
+      return text.slice(0, 200) || ("HTTP " + resp.status);
+    }
+  }
+
+  // PIX: chama /api/criar-pix, guarda o QR no localStorage e redireciona
+  // pra /sucesso (que mostra o QR + faz polling no Firestore).
+  $("pay-pix").addEventListener("click", async () => {
+    if (!payContext) return;
+    setModalLoading("Gerando seu QR Code Pix…");
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/criar-pix`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payContext.payload)
+      });
+      if (!resp.ok) throw new Error(await parseApiError(resp));
+      const data = await resp.json();
+      if (!data.qrCodeBase64 || !data.qrCodeText || !data.pendingCheckoutId) {
+        throw new Error("Resposta inválida do servidor Pix.");
+      }
+      // Guarda QR no localStorage (sobrevive a refresh por 30 min)
+      try {
+        localStorage.setItem("pix:" + data.pendingCheckoutId, JSON.stringify({
+          qrCodeBase64: data.qrCodeBase64,
+          qrCodeText:   data.qrCodeText,
+          ticketUrl:    data.ticketUrl || "",
+          paymentId:    data.paymentId,
+          expiresAt:    data.expiresAt,
+          valor:        data.valor,
+          eventNome:    payContext.eventNome,
+          ts:           Date.now()
+        }));
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id:     data.pendingCheckoutId,
+          ts:     Date.now(),
+          slug:   eventData.slug || "",
+          metodo: "pix"
+        }));
+      } catch (err) {
+        console.warn("localStorage indisponível:", err);
+      }
+      location.replace("/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId));
+    } catch (err) {
+      console.error(err);
+      setModalError("Não foi possível gerar o Pix: " + err.message);
+    }
+  });
+
+  // CARTÃO: chama /api/criar-preferencia (Checkout Pro só com cartão)
+  // e redireciona para o init_point. Para cartão o auto_return funciona —
+  // o MP volta sozinho para /sucesso quando o pagamento for aprovado.
+  $("pay-cartao").addEventListener("click", async () => {
+    if (!payContext) return;
+    setModalLoading("Abrindo o pagamento com cartão…");
+    try {
+      const resp = await fetch(`${API_BASE_URL}/api/criar-preferencia`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payContext.payload)
+      });
+      if (!resp.ok) throw new Error(await parseApiError(resp));
+      const data = await resp.json();
+      const checkoutUrl = data.init_point || data.sandbox_init_point;
+      if (!checkoutUrl) throw new Error(data.error || "API não retornou link de pagamento.");
+      try {
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id:     data.pendingCheckoutId || "",
+          ts:     Date.now(),
+          slug:   eventData.slug || "",
+          metodo: "cartao"
+        }));
+      } catch {}
+      location.href = checkoutUrl;
+    } catch (err) {
+      console.error(err);
+      setModalError("Não foi possível iniciar o cartão: " + err.message);
+    }
+  });
+
+  $("registration-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const btn = $("btn-submit");
+    const btnTxt = $("btn-submit-text");
+
+    // coleta dados
+    const participants = [];
+    for (let i = 0; i < qty; i++) {
+      const get = (n) => document.querySelector(`[name="${n}-${i}"]`)?.value?.trim() || "";
+      const sizeOne = document.querySelector(`input[name="size-one-${i}"]:checked`);
+      const sizeTwo = document.querySelector(`input[name="size-two-${i}"]:checked`);
+      const modelOne = document.querySelector(`input[name="model-one-${i}"]:checked`);
+      const modelTwo = document.querySelector(`input[name="model-two-${i}"]:checked`);
+      participants.push({
+        nome:        get("nome"),
+        telefone:    get("telefone"),
+        email:       get("email"),
+        endereco:    get("endereco"),
+        cidade:      get("cidade"),
+        comunidade:  get("comunidade"),
+        pastoral:    get("pastoral"),
+        nomeEsposa:  get("nomeEsposa"),
+        contatoEsposaFamiliar: get("contatoEsposaFamiliar"),
+        tamanhoCamiseta: sizeOne ? sizeOne.value : "",
+        genero: modelOne ? modelOne.value : "",
+        tamanhoCamisetaEsposa: sizeTwo ? sizeTwo.value : "",
+        generoEsposa: modelTwo ? modelTwo.value : ""
+      });
+    }
+
+    // validação básica
+    for (const [i, p] of participants.entries()) {
+      if (!p.nome || !p.telefone || !p.nomeEsposa || !p.contatoEsposaFamiliar || !p.email) {
+        alert(`Preencha os campos obrigatórios do Casal ${i+1}.`);
+        return;
+      }
+      if (temCamiseta(p.tamanhoCamiseta) && !p.genero) {
+        alert(`Escolha o modelo da camiseta do primeiro cônjuge do Casal ${i+1}.`);
+        return;
+      }
+      if (temCamiseta(p.tamanhoCamisetaEsposa) && !p.generoEsposa) {
+        alert(`Escolha o modelo da camiseta do segundo cônjuge do Casal ${i+1}.`);
+        return;
+      }
+    }
+
+    btn.disabled = true;
+    btnTxt.textContent = "Verificando vagas…";
+
+    let navegando = false;
+    try {
+      if (!db || !eventData.id) {
+        alert("Evento não encontrado no Firestore. Crie o evento pelo painel /admin antes de aceitar inscrições.");
+        return;
+      }
+
+      // 1) Recarrega o evento para checar estoque/vagas em tempo real (anti-overselling)
+      const freshSnap = await db.collection("events").doc(eventData.id).get();
+      if (!freshSnap.exists) {
+        alert("Evento não encontrado.");
+        return;
+      }
+      eventData = { ...eventData, ...freshSnap.data(), id: freshSnap.id };
+
+      if (eventData.ativo === false) {
+        alert("As inscrições para este evento foram pausadas.");
+        renderEvent();
+        return;
+      }
+
+      const limite = Number(eventData.limiteIngressos) || 0;
+      const vendidos = Number(eventData.ingressosVendidos) || 0;
+      const restantes = Math.max(0, limite - vendidos);
+      if (limite > 0 && qty > restantes) {
+        alert(`Só restam ${restantes} vaga(s) no evento. Reduza a quantidade.`);
+        renderEvent();
+        return;
+      }
+
+      // Conta a demanda por tamanho nesta inscrição e compara com o estoque
+      const demandaPorTamanho = {};
+      for (const p of participants) {
+        [p.tamanhoCamiseta, p.tamanhoCamisetaEsposa].forEach(sz => {
+          if (temCamiseta(sz)) demandaPorTamanho[sz] = (demandaPorTamanho[sz] || 0) + 1;
+        });
+      }
+      for (const [sz, qtd] of Object.entries(demandaPorTamanho)) {
+        const rest = restanteTamanho(sz);
+        if (rest < qtd) {
+          alert(`O tamanho ${sz} só tem ${rest === 0 ? "nenhuma" : rest} unidade(s) disponível(eis). Ajuste as escolhas.`);
+          renderParticipants();
+          return;
+        }
+      }
+
+      // total = valor por casal + adicional por camiseta escolhida
+      const base = Number(eventData.valor) || 0;
+      const precoCam = Number(eventData.precoCamiseta) || 0;
+      const comCamiseta = participants.reduce((totalCam, p) => totalCam
+        + (temCamiseta(p.tamanhoCamiseta) ? 1 : 0)
+        + (temCamiseta(p.tamanhoCamisetaEsposa) ? 1 : 0), 0);
+      const total = qty * base + comCamiseta * precoCam;
+
+      // Payload comum aos dois endpoints. Tanto /api/criar-pix quanto
+      // /api/criar-preferencia esperam os mesmos campos.
+      const payload = {
+        eventId:        eventData.id,
+        eventSlug:      eventData.slug || "",
+        eventNome:      eventData.nome || "",
+        quantidade:     qty,
+        valorTotal:     total,
+        valorUnitario:  base,
+        precoCamiseta:  precoCam,
+        comCamiseta:    comCamiseta,
+        participantes:  participants,
+        titulo:         `Inscrição — ${eventData.nome || "Evento"}`,
+        descricao:      comCamiseta > 0
+                          ? `${qty} casal(is) · ${comCamiseta} camiseta(s)`
+                          : `${qty} casal(is)`,
+        payer: {
+          name:  participants[0]?.nome     || "",
+          email: participants[0]?.email    || "",
+          phone: participants[0]?.telefone || ""
+        }
+      };
+
+      // Cartão desativado — vai direto para Pix.
+      // Para reativar o seletor Pix/Cartão, troque esta chamada por
+      //   openPayModal({ total, payload, eventNome: eventData.nome || "" });
+      btnTxt.textContent = "Gerando seu QR Code Pix…";
+      payContext = { total, payload, eventNome: eventData.nome || "" };
+
+      const resp = await fetch(`${API_BASE_URL}/api/criar-pix`, {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify(payload)
+      });
+      if (!resp.ok) throw new Error(await parseApiError(resp));
+      const data = await resp.json();
+      if (!data.qrCodeBase64 || !data.qrCodeText || !data.pendingCheckoutId) {
+        throw new Error("Resposta inválida do servidor Pix.");
+      }
+      try {
+        localStorage.setItem("pix:" + data.pendingCheckoutId, JSON.stringify({
+          qrCodeBase64: data.qrCodeBase64,
+          qrCodeText:   data.qrCodeText,
+          ticketUrl:    data.ticketUrl || "",
+          paymentId:    data.paymentId,
+          expiresAt:    data.expiresAt,
+          valor:        data.valor,
+          eventNome:    eventData.nome || "",
+          ts:           Date.now()
+        }));
+        localStorage.setItem("lastCheckout", JSON.stringify({
+          id:     data.pendingCheckoutId,
+          ts:     Date.now(),
+          slug:   eventData.slug || "",
+          metodo: "pix"
+        }));
+      } catch (err) {
+        console.warn("localStorage indisponível:", err);
+      }
+      navegando = true;
+      location.replace("/sucesso?registrationId=" + encodeURIComponent(data.pendingCheckoutId));
+    } catch (err) {
+      console.error(err);
+      alert("❌ Não foi possível gerar o Pix: " + (err.message || err));
+    } finally {
+      if (!navegando) {
+        btn.disabled = false;
+        btnTxt.textContent = "Pagar com Pix";
+      }
+    }
+  });
+
+  /* ------- inicia ------- */
+  loadEvent();
+</script>
+</body>
+</html>
