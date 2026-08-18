@@ -1197,8 +1197,8 @@
           <p>Um final de semana preparado para casais que desejam fortalecer o amor, renovar a aliança e crescer juntos na fé.</p>
           <p>Serão momentos de oração, formação, convivência e partilha na Sede do Acampamento.</p>
           <div class="scripture">
-            "Assim, eles já não são dois, mas sim uma só carne."
-            <cite>Mateus 19,6</cite>
+            “Deus tem um plano para nós”
+            <cite>Jer 29,11</cite>
           </div>
         </div>
         <div class="about-visual">
@@ -1253,7 +1253,7 @@
       <div class="section-header">
         <div class="section-eyebrow">Camiseta oficial</div>
         <h2 class="section-title">Deus tem um plano para nós</h2>
-        <p class="section-sub">Escolha o modelo e o tamanho de cada cônjuge. A imagem e os nomes dos modelos podem ser atualizados pelo painel administrativo.</p>
+        <p class="section-sub">Escolha o tamanho da camiseta oficial para cada cônjuge. A imagem e o nome do modelo podem ser atualizados pelo painel administrativo.</p>
       </div>
 
       <div class="shirt-grid">
@@ -1261,21 +1261,21 @@
         <!-- VITRINE DA CAMISETA -->
         <div class="shirt-showcase">
           <img class="shirt-illustration couples-shirt-layout" id="shirt-layout-image"
-               src="/images/camisetas_retiro_casais.png"
-               alt="Layout da camiseta oficial do Retiro para Casais">
+               src="/images/camisetas_retiro_casais.png?v=20260818-2"
+               alt="Camiseta oficial do Retiro para Casais, frente e costas">
         </div>
 
         <!-- INFO LATERAL -->
         <div class="shirt-side">
 
           <div class="shirt-info-card">
-            <h3>Modelos disponíveis</h3>
-            <p id="shirt-models-description">Modelo 1: logos nos ombros · Modelo 2: logos centralizados · Modelo 3: logos empilhados. A frente é comum aos três modelos.</p>
+            <h3>Modelo disponível</h3>
+            <p id="shirt-models-description">Modelo oficial · Frente e costas</p>
           </div>
 
           <div class="pink-fallback">
             <h4>Escolha individual</h4>
-            <p>Cada pessoa do casal pode escolher um modelo e um tamanho diferentes.</p>
+            <p>Cada pessoa do casal pode escolher seu próprio tamanho.</p>
           </div>
         </div>
       </div>
@@ -1476,8 +1476,8 @@
     limiteIngressos: 250,
     ingressosVendidos: 0,
     exigeCamiseta: true,
-    tamanhosCamiseta: ["PP","P","M","G","GG","XG","XXG"],
-    modelosCamiseta: ["Modelo 1","Modelo 2","Modelo 3"],
+    tamanhosCamiseta: ["P","M","G","GG","G1","G2","G3"],
+    modelosCamiseta: ["Modelo oficial"],
     estoqueCamisetas: {},                      // ex.: { P: 100, M: 50 }  (0/ausente = ilimitado)
     vendidoCamisetas: {},                      // ex.: { P: 5, M: 3 }
     ativo: true,
@@ -1593,10 +1593,14 @@
     }
     if (eventData.local) $("event-location").innerHTML = eventData.local;
     if (eventData.bannerUrl) $("event-banner").src = eventData.bannerUrl;
-    if (eventData.camisetaImagemUrl) $("shirt-layout-image").src = eventData.camisetaImagemUrl;
-    if (Array.isArray(eventData.modelosCamiseta) && eventData.modelosCamiseta.length) {
-      $("shirt-models-description").textContent = eventData.modelosCamiseta.join(" · ");
-    }
+    const shirtImageUrl = eventData.camisetaImagemUrl || "/images/camisetas_retiro_casais.png";
+    $("shirt-layout-image").src = /\/images\/camisetas_retiro_casais\.png(?:\?|$)/i.test(shirtImageUrl)
+      ? shirtImageUrl.replace(/\?.*$/, "") + "?v=20260818-2"
+      : shirtImageUrl;
+    const shirtModels = getShirtModels();
+    $("shirt-models-description").textContent = shirtModels.length === 1
+      ? `${shirtModels[0]} · Frente e costas`
+      : shirtModels.join(" · ");
 
     if (eventData.valor) {
       const base = fmtBRLSplit(eventData.valor);
@@ -1637,14 +1641,24 @@
   /* =========================================================
      PARTICIPANTES
      ========================================================= */
+  function getShirtModels(){
+    const configured = Array.isArray(eventData.modelosCamiseta)
+      ? eventData.modelosCamiseta.map(model => String(model).trim()).filter(Boolean)
+      : [];
+    const onlyGenericPlaceholders = configured.length > 0
+      && configured.every(model => /^modelo\s*\d+$/i.test(model));
+    return configured.length && !onlyGenericPlaceholders ? configured : ["Modelo oficial"];
+  }
+
+  function getShirtSizes(){
+    return ["P","M","G","GG","G1","G2","G3"];
+  }
+
   function shirtFieldsHTML(idx, personKey, personLabel){
     if (eventData.exigeCamiseta === false) return "";
-    const realSizes = (eventData.tamanhosCamiseta || ["PP","P","M","G","GG","XG","XXG"])
-      .filter(s => !/n[ãa]o\s*dese/i.test(s));
+    const realSizes = getShirtSizes();
     const sizes = [...realSizes, NO_SHIRT_LABEL];
-    const models = Array.isArray(eventData.modelosCamiseta) && eventData.modelosCamiseta.length
-      ? eventData.modelosCamiseta
-      : ["Modelo 1","Modelo 2","Modelo 3"];
+    const models = getShirtModels();
 
     const sizeOptions = sizes.map((sz, i) => {
       const isNoShirt = /n[ãa]o\s*dese/i.test(sz);
@@ -1663,7 +1677,7 @@
 
     const modelOptions = models.map((model, i) => {
       const id = `model-${personKey}-${idx}-${i}`;
-      return `<div class="model-option"><input type="radio" name="model-${personKey}-${idx}" id="${id}" value="${model}"><label for="${id}">${model}</label></div>`;
+      return `<div class="model-option"><input type="radio" name="model-${personKey}-${idx}" id="${id}" value="${model}" ${models.length === 1 ? "checked" : ""}><label for="${id}">${model}</label></div>`;
     }).join("");
 
     return `
