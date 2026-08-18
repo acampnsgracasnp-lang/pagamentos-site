@@ -7,6 +7,18 @@
 <meta name="theme-color" content="#fbf5f1">
 <title>1º Encontro de Mulheres — Movidas pelo Espírito</title>
 
+<script>
+  // Corrige links antigos que apontam para uma página visual diferente.
+  (() => {
+    const slug = new URLSearchParams(location.search).get("evento") || "";
+    const destino = /casal|retiro/i.test(slug) ? "/casais"
+                  : /homen|hdh|virtus/i.test(slug) ? "/homens"
+                  : /camis/i.test(slug) ? "/camizas"
+                  : "";
+    if (destino) location.replace(destino + location.search);
+  })();
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=Manrope:wght@300..800&display=swap" rel="stylesheet">

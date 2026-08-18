@@ -7,6 +7,17 @@
 <meta name="theme-color" content="#4a0d19">
 <title>2º Retiro para Casais</title>
 
+<script>
+  (() => {
+    const slug = new URLSearchParams(location.search).get("evento") || "";
+    const destino = /mulher/i.test(slug) ? "/mulheres"
+                  : /homen|hdh|virtus/i.test(slug) ? "/homens"
+                  : /camis/i.test(slug) ? "/camizas"
+                  : "";
+    if (destino) location.replace(destino + location.search);
+  })();
+</script>
+
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=Manrope:wght@300..800&display=swap" rel="stylesheet">
