@@ -535,6 +535,75 @@
   }
   .size-table tr:last-child td{ border-bottom: none; }
 
+  .measure-note{
+    margin: 12px 0 0;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    font-size: 12px !important;
+    color: var(--muted);
+  }
+
+  /* Informações oficiais do retiro */
+  .event-details{
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .detail-card{
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 24px;
+    box-shadow: var(--shadow-sm);
+  }
+  .detail-card h3{
+    margin: 0 0 14px;
+    color: var(--wine);
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 650;
+  }
+  .detail-list{
+    margin: 0;
+    padding-left: 20px;
+    color: var(--ink);
+  }
+  .detail-list li{ margin: 7px 0; }
+  .detail-list li::marker{ color: var(--gold); }
+  .detail-warning{
+    margin-top: 14px;
+    padding: 11px 13px;
+    border-radius: var(--radius-sm);
+    background: #fff5df;
+    border: 1px solid #ead09b;
+    color: var(--wine);
+    font-size: 13px;
+    font-weight: 700;
+  }
+  .schedule-list{
+    display: grid;
+    gap: 12px;
+  }
+  .schedule-item{
+    display: grid;
+    grid-template-columns: 64px 1fr;
+    gap: 12px;
+    align-items: start;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #f1e4dc;
+  }
+  .schedule-item:last-child{ border-bottom: 0; padding-bottom: 0; }
+  .schedule-date{
+    color: var(--rose-deep);
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .schedule-copy strong{ display: block; color: var(--wine); }
+  .schedule-copy span{ color: var(--muted); font-size: 13px; }
+  @media (max-width: 700px){
+    .event-details{ grid-template-columns: 1fr; }
+  }
+
   /* =========================================================
      "VENHA DE ROSA" — paleta de cores
      ========================================================= */
@@ -1248,6 +1317,42 @@
       </div>
     </section>
 
+    <!-- CRITÉRIOS E PROGRAMAÇÃO -->
+    <section class="section" aria-labelledby="event-details-title">
+      <div class="section-header">
+        <div class="section-eyebrow">Informações importantes</div>
+        <h2 class="section-title" id="event-details-title">Antes de fazer sua inscrição</h2>
+      </div>
+
+      <div class="event-details">
+        <article class="detail-card">
+          <h3>Critérios de participação</h3>
+          <ul class="detail-list">
+            <li>Casados na Igreja</li>
+            <li>Não casados na Igreja</li>
+            <li>Casais de 1ª ou 2ª união</li>
+            <li>Casais de noivos</li>
+          </ul>
+          <div class="detail-warning">Não é permitido levar crianças, exceto bebê de colo.</div>
+        </article>
+
+        <article class="detail-card">
+          <h3>Programação</h3>
+          <div class="schedule-list">
+            <div class="schedule-item">
+              <div class="schedule-date">17/10</div>
+              <div class="schedule-copy"><strong>Sábado · início às 13h</strong><span>Check-in no local</span></div>
+            </div>
+            <div class="schedule-item">
+              <div class="schedule-date">18/10</div>
+              <div class="schedule-copy"><strong>Domingo · início às 8h30</strong><span>Santa Missa</span></div>
+            </div>
+          </div>
+          <div class="detail-warning">Não dormiremos no local.</div>
+        </article>
+      </div>
+    </section>
+
     <!-- CAMISETA -->
     <section class="section">
       <div class="section-header">
@@ -1269,8 +1374,22 @@
         <div class="shirt-side">
 
           <div class="shirt-info-card">
-            <h3>Modelo disponível</h3>
+            <h3>Tabela de medidas</h3>
             <p id="shirt-models-description">Modelo oficial · Frente e costas</p>
+            <table class="size-table" aria-label="Medidas da camiseta oficial em centímetros">
+              <thead>
+                <tr><th>Tamanho</th><th>Largura</th><th>Altura</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>P</td><td>52 cm</td><td>73 cm</td></tr>
+                <tr><td>M</td><td>55 cm</td><td>76 cm</td></tr>
+                <tr><td>G</td><td>58 cm</td><td>79 cm</td></tr>
+                <tr><td>GG</td><td>61 cm</td><td>82 cm</td></tr>
+                <tr><td>GG1</td><td>64 cm</td><td>85 cm</td></tr>
+                <tr><td>GG2</td><td>67 cm</td><td>88 cm</td></tr>
+              </tbody>
+            </table>
+            <p class="measure-note">As medidas podem variar aproximadamente 1 cm para mais ou para menos.</p>
           </div>
 
           <div class="pink-fallback">
@@ -1476,12 +1595,13 @@
     limiteIngressos: 250,
     ingressosVendidos: 0,
     exigeCamiseta: true,
-    tamanhosCamiseta: ["P","M","G","GG","G1","G2","G3"],
+    tamanhosCamiseta: ["P","M","G","GG","GG1","GG2"],
     modelosCamiseta: ["Modelo oficial"],
     estoqueCamisetas: {},                      // ex.: { P: 100, M: 50 }  (0/ausente = ilimitado)
     vendidoCamisetas: {},                      // ex.: { P: 5, M: 3 }
     ativo: true,
     dataEvento: "2026-10-17",
+    dataFimEvento: "2026-10-18",
     local: "Sede do Acampamento — Novo Progresso/PA",
     descricao: "Um final de semana para fortalecer o amor e a fé.",
     bannerUrl: "/images/retiro_casais.jpeg",
@@ -1581,14 +1701,23 @@
     $("loading-state").classList.add("hidden");
     $("event-state").classList.remove("hidden");
 
-    // Data do evento — admin grava em dataEvento (yyyy-mm-dd ou ISO)
+    // Datas do evento — admin grava em dataEvento/dataFimEvento (yyyy-mm-dd ou ISO)
     if (eventData.dataEvento) {
       try {
         const raw = String(eventData.dataEvento);
         const d = new Date(raw.includes("T") ? raw : raw + "T12:00:00");
-        $("event-date").innerHTML = isNaN(d.getTime())
-          ? raw
-          : d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+        const endRaw = eventData.dataFimEvento ? String(eventData.dataFimEvento) : "";
+        const end = endRaw ? new Date(endRaw.includes("T") ? endRaw : endRaw + "T12:00:00") : null;
+        if (isNaN(d.getTime())) {
+          $("event-date").innerHTML = raw;
+        } else if (end && !isNaN(end.getTime())) {
+          const sameMonth = d.getMonth() === end.getMonth() && d.getFullYear() === end.getFullYear();
+          $("event-date").innerHTML = sameMonth
+            ? `${d.getDate()} e ${end.getDate()} de ${end.toLocaleDateString("pt-BR", { month: "long" })}<small>${end.getFullYear()}</small>`
+            : `${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })} a ${end.toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}<small>${end.getFullYear()}</small>`;
+        } else {
+          $("event-date").innerHTML = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+        }
       } catch { $("event-date").innerHTML = eventData.dataEvento; }
     }
     if (eventData.local) $("event-location").innerHTML = eventData.local;
@@ -1651,7 +1780,7 @@
   }
 
   function getShirtSizes(){
-    return ["P","M","G","GG","G1","G2","G3"];
+    return ["P","M","G","GG","GG1","GG2"];
   }
 
   function shirtFieldsHTML(idx, personKey, personLabel){
