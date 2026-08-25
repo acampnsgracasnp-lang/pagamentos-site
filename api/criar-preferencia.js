@@ -56,6 +56,9 @@ function sanitizeParticipantes(arr) {
     const genero = /^masc/i.test(generoRaw) ? "Masculino"
                  : /^fem/i.test(generoRaw) ? "Feminino"
                  : generoRaw;
+    // camiseta do segundo cônjuge (evento de casais)
+    const tamanhoEsposa = String((p && p.tamanhoCamisetaEsposa) || "").trim();
+    const generoEsposa = String((p && p.generoEsposa) || "").trim();
     return {
       nome: String((p && p.nome) || "").trim(),
       email: String((p && p.email) || "").trim(),
@@ -66,7 +69,9 @@ function sanitizeParticipantes(arr) {
       endereco: String((p && p.endereco) || "").trim(),
       genero: genero,
       desejaCamiseta: desejaCamiseta,
-      tamanhoCamiseta: desejaCamiseta === false ? "" : tamanho
+      tamanhoCamiseta: desejaCamiseta === false ? "" : tamanho,
+      tamanhoCamisetaEsposa: tamanhoEsposa,
+      generoEsposa: generoEsposa
     };
   });
 }

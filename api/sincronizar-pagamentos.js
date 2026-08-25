@@ -63,10 +63,12 @@ function mapStatus(mpStatus) {
 function camisetasPorTamanho(participantes) {
   const out = {};
   (participantes || []).forEach(p => {
-    const sz = p && p.tamanhoCamiseta;
-    if (sz && !/n[ãa]o\s*dese/i.test(String(sz))) {
-      out[sz] = (out[sz] || 0) + 1;
-    }
+    // primeiro cônjuge + segundo cônjuge (evento de casais)
+    [p && p.tamanhoCamiseta, p && p.tamanhoCamisetaEsposa].forEach(sz => {
+      if (sz && !/n[ãa]o\s*dese/i.test(String(sz))) {
+        out[sz] = (out[sz] || 0) + 1;
+      }
+    });
   });
   return out;
 }

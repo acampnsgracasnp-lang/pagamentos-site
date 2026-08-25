@@ -791,8 +791,11 @@
     currentRegs.forEach(r => {
       const tr = document.createElement("tr");
       const principal = (r.participantes && r.participantes[0]) || {};
+      const szTxt = (sz) => !sz || isNoShirtLabel(sz) ? "—" : sz;
       const tamanhosTxt = (r.participantes || [])
-        .map(p => !p.tamanhoCamiseta || isNoShirtLabel(p.tamanhoCamiseta) ? "—" : p.tamanhoCamiseta)
+        .map(p => p.tamanhoCamisetaEsposa
+          ? `${szTxt(p.tamanhoCamiseta)}/${szTxt(p.tamanhoCamisetaEsposa)}`
+          : szTxt(p.tamanhoCamiseta))
         .join(", ") || "—";
       tr.innerHTML = `
         <td>${formatTimestamp(r.createdAt)}</td>
@@ -843,11 +846,15 @@
           <div><b>Contato da esposa ou familiar:</b> ${escapeHTML(p.contatoEsposaFamiliar || p.contatoEsposa || p.contatoFamiliar || p.contato_esposa_familiar || "—")}</div>
           ${p.genero ? `<div><b>Modelo da camisa:</b> ${escapeHTML(p.genero)}</div>` : ""}
           <div><b>Camiseta:</b> ${camLabel}</div>
+          ${p.tamanhoCamisetaEsposa ? `
+          ${p.generoEsposa ? `<div><b>Modelo da camisa (2º cônjuge):</b> ${escapeHTML(p.generoEsposa)}</div>` : ""}
+          <div><b>Camiseta (2º cônjuge):</b> ${isNoShirtLabel(p.tamanhoCamisetaEsposa) ? "Não desejou camiseta" : `Sim — tamanho ${escapeHTML(p.tamanhoCamisetaEsposa)}`}</div>` : ""}
         </div>
       </div>
     `;}).join("");
 
-    const comCam = Number(r.comCamiseta) || (r.participantes || []).filter(p => temCamiseta(p.tamanhoCamiseta)).length;
+    const comCam = Number(r.comCamiseta) || (r.participantes || [])
+      .reduce((n, p) => n + (temCamiseta(p.tamanhoCamiseta) ? 1 : 0) + (temCamiseta(p.tamanhoCamisetaEsposa) ? 1 : 0), 0);
     const semCam = (Number(r.quantidade) || (r.participantes || []).length) - comCam;
     const valorUnit = Number(r.valorUnitario) || 0;
     const precoCam = Number(r.precoCamiseta) || 0;
@@ -890,6 +897,7 @@
       "Nome", "E-mail", "Telefone", "Cidade", "Comunidade", "Pastoral",
       "Endereço", "Nome da esposa", "Contato da esposa ou familiar",
       "Camiseta", "Tamanho", "Modelo (M/F)",
+      "Camiseta 2º cônjuge", "Tamanho 2º cônjuge", "Modelo 2º cônjuge",
       "PreferenceId", "PaymentId", "RegistrationId"
     ]];
 
@@ -899,6 +907,9 @@
       (r.participantes || [{}]).forEach((p, idx) => {
         const camTxt = !p.tamanhoCamiseta ? "" : (isNoShirtLabel(p.tamanhoCamiseta) ? "Não" : "Sim");
         const tamTxt = !p.tamanhoCamiseta || isNoShirtLabel(p.tamanhoCamiseta) ? "" : p.tamanhoCamiseta;
+        const szE = p.tamanhoCamisetaEsposa;
+        const camTxtE = !szE ? "" : (isNoShirtLabel(szE) ? "Não" : "Sim");
+        const tamTxtE = !szE || isNoShirtLabel(szE) ? "" : szE;
         rows.push([
           idx === 0 ? created : "",
           idx === 0 ? evNome : "",
@@ -917,6 +928,9 @@
           camTxt,
           tamTxt,
           p.genero || "",
+          camTxtE,
+          tamTxtE,
+          p.generoEsposa || "",
           idx === 0 ? (r.mercadoPagoPreferenceId || "") : "",
           idx === 0 ? (r.mercadoPagoPaymentId || "") : "",
           idx === 0 ? r.id : ""

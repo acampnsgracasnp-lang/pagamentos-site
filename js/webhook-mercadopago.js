@@ -162,10 +162,12 @@ module.exports = async function handler(req, res) {
       // (usado para incrementar/decrementar vendidoCamisetas no evento)
       const camisetasPorTamanho = {};
       (reg.participantes || []).forEach(p => {
-        const sz = p && p.tamanhoCamiseta;
-        if (sz && !/n[ãa]o\s*dese/i.test(String(sz))) {
-          camisetasPorTamanho[sz] = (camisetasPorTamanho[sz] || 0) + 1;
-        }
+        // primeiro cônjuge + segundo cônjuge (evento de casais)
+        [p && p.tamanhoCamiseta, p && p.tamanhoCamisetaEsposa].forEach(sz => {
+          if (sz && !/n[ãa]o\s*dese/i.test(String(sz))) {
+            camisetasPorTamanho[sz] = (camisetasPorTamanho[sz] || 0) + 1;
+          }
+        });
       });
 
       // Se mudou para PAGO, incrementa ingressosVendidos + vendidoCamisetas

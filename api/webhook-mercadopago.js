@@ -190,10 +190,12 @@ module.exports = async function handler(req, res) {
       // Calcula quantas camisetas por tamanho esta inscrição consumiu.
       const camisetasPorTamanho = {};
       (reg.participantes || []).forEach(p => {
-        const sz = p && p.tamanhoCamiseta;
-        if (sz && !/n[ãa]o\s*dese/i.test(String(sz))) {
-          camisetasPorTamanho[sz] = (camisetasPorTamanho[sz] || 0) + 1;
-        }
+        // primeiro cônjuge + segundo cônjuge (evento de casais)
+        [p && p.tamanhoCamiseta, p && p.tamanhoCamisetaEsposa].forEach(sz => {
+          if (sz && !/n[ãa]o\s*dese/i.test(String(sz))) {
+            camisetasPorTamanho[sz] = (camisetasPorTamanho[sz] || 0) + 1;
+          }
+        });
       });
 
       const dadosPagamento = {
